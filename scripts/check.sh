@@ -17,6 +17,7 @@ load_compatibility
 cd -- "$PACKAGE_ROOT"
 
 required_files=(
+  .github/workflows/ci.yml
   README.md
   README.en.md
   QUICKSTART.zh-CN.md
@@ -61,6 +62,35 @@ with open(path, encoding="utf-8") as handle:
 PY
 
 python3 -m json.tool compatibility.json >/dev/null
+
+python3 - .github/workflows/ci.yml <<'PY'
+import re
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as handle:
+    workflow = handle.read()
+
+if "\t" in workflow:
+    raise SystemExit("GitHub Actions workflow contains a tab")
+if re.search(r"^\s*pull_request_target\s*:", workflow, re.MULTILINE):
+    raise SystemExit("pull_request_target is forbidden for this untrusted PR workflow")
+if re.search(r"^\s*[A-Za-z_-]+\s*:\s*write\s*$", workflow, re.MULTILINE):
+    raise SystemExit("GitHub Actions workflow must not request write permission")
+if "${{ secrets." in workflow:
+    raise SystemExit("GitHub Actions workflow must not reference secrets")
+if not re.search(r"^permissions:\s*\n\s+contents:\s*read\s*$", workflow, re.MULTILINE):
+    raise SystemExit("GitHub Actions workflow must declare contents: read")
+if "persist-credentials: false" not in workflow:
+    raise SystemExit("checkout credentials must not persist")
+
+action_references = re.findall(r"^\s*uses:\s*([^\s@]+)@([^\s#]+)", workflow, re.MULTILINE)
+if not action_references:
+    raise SystemExit("GitHub Actions workflow does not contain an external action")
+for action, reference in action_references:
+    if not re.fullmatch(r"[0-9a-f]{40}", reference):
+        raise SystemExit(f"external action is not pinned to a full SHA: {action}")
+PY
 
 actual_patch_sha="$(sha256_file "$PATCH_FILE")"
 [[ "$actual_patch_sha" == "$PATCH_SHA256" ]] || die "patch SHA256 mismatch"
