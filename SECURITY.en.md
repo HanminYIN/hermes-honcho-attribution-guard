@@ -20,11 +20,12 @@ truth. Forcing the patch onto an unknown version is not a supported scenario.
 
 ## Private reporting
 
-If GitHub Private Vulnerability Reporting is enabled, open the repository's
-**Security** page and choose **Report a vulnerability**. This is the preferred
-channel.
+This repository has GitHub Private Vulnerability Reporting enabled. Use
+**[Report a vulnerability privately](https://github.com/HanminYIN/hermes-honcho-attribution-guard/security/advisories/new)**
+to submit a report. Its contents are visible only to the reporter, maintainers,
+and collaborators invited by a maintainer. This is the preferred channel.
 
-If private reporting is not yet available:
+If GitHub temporarily does not show the private reporting entry point:
 
 1. Do not paste vulnerability details or credentials into a public issue,
    discussion, pull request, log, or screenshot.
