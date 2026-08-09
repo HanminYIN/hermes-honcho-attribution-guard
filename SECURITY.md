@@ -19,10 +19,11 @@
 
 ## 如何私密报告
 
-如果仓库已启用 GitHub Private Vulnerability Reporting，请进入仓库的 **Security**
-页面，选择 **Report a vulnerability** 提交私密报告。这是首选方式。
+本仓库已启用 GitHub Private Vulnerability Reporting。请使用
+**[私密报告漏洞](https://github.com/HanminYIN/hermes-honcho-attribution-guard/security/advisories/new)**
+提交报告；报告内容只对报告者、维护者及维护者邀请的协作者可见。这是首选方式。
 
-如果私密报告入口尚未启用：
+如果 GitHub 暂时无法显示私密报告入口：
 
 1. 不要在公开 Issue、Discussion、PR、日志或截图中粘贴漏洞细节或凭据；
 2. 可以创建一个不包含技术细节和私人信息的公开 Issue，仅说明需要私密安全联系渠道；
