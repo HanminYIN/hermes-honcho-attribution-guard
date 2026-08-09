@@ -1,0 +1,33 @@
+<svg width="800" height="210" viewBox="0 0 1600 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Hermes Honcho Attribution Guard</title>
+  <desc id="desc">让记忆知道是谁说的。Memory that knows who said what.</desc>
+  <defs>
+    <linearGradient id="panel" x1="0" y1="0" x2="1600" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17191E"/>
+      <stop offset="1" stop-color="#111C27"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="190" y1="118" x2="362" y2="302" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7DD3FC"/>
+      <stop offset="1" stop-color="#818CF8"/>
+    </linearGradient>
+    <filter id="glow" x="80" y="20" width="420" height="380" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="52"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="420" rx="28" fill="url(#panel)"/>
+  <circle cx="285" cy="210" r="126" fill="#2563EB" fill-opacity="0.16" filter="url(#glow)"/>
+
+  <rect x="154" y="84" width="252" height="252" rx="58" fill="#F8FAFC"/>
+  <path d="M223 170C223 151.222 238.222 136 257 136H315C333.778 136 349 151.222 349 170V224C349 242.778 333.778 258 315 258H280L243 290V258H257C238.222 258 223 242.778 223 224V170Z" fill="url(#accent)"/>
+  <circle cx="257" cy="197" r="11" fill="#F8FAFC"/>
+  <circle cx="286" cy="197" r="11" fill="#F8FAFC"/>
+  <circle cx="315" cy="197" r="11" fill="#F8FAFC"/>
+  <path d="M342 126L357 133V149C357 166 346.5 179.5 330 185C313.5 179.5 303 166 303 149V133L318 126L330 119L342 126Z" fill="#111827" stroke="#F8FAFC" stroke-width="6"/>
+  <path d="M320 150L327 157L341 142" stroke="#7DD3FC" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="492" y="125" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="700" letter-spacing="8">HONCHO ATTRIBUTION GUARD</text>
+  <text x="488" y="214" fill="#F8FAFC" font-family="'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="62" font-weight="650">让记忆知道，是谁说的</text>
+  <text x="492" y="266" fill="#CBD5E1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="28" font-weight="450">Memory that knows who said what.</text>
+  <text x="492" y="322" fill="#7DD3FC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22" font-weight="600">Hermes v2026.8.3  ·  attribution v2  ·  verifiable  ·  reversible</text>
+</svg>

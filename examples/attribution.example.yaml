@@ -1,0 +1,39 @@
+schema_version: 1
+identity_profile:
+  scope: single-user
+  user:
+    primary: "Example Person"
+    aliases:
+      - "Example Alias"
+      - "Example Handle"
+  assistant:
+    primary: "Example Assistant"
+    aliases:
+      - "Helper Alias"
+attribution:
+  version: 2
+  speaker:
+    peer_id: "${HONCHO_USER_PEER_ID}"
+    role: user
+  addressee:
+    peer_id: "${HONCHO_ASSISTANT_PEER_ID}"
+  pronoun_map:
+    first_person: "${HONCHO_USER_PEER_ID}"
+    second_person: "${HONCHO_ASSISTANT_PEER_ID}"
+  metadata:
+    hermes_attribution_version: 2
+    speaker_peer_id: "${HONCHO_USER_PEER_ID}"
+    speaker_role: user
+    speaker_aliases:
+      - "Example Person"
+      - "Example Alias"
+    addressee_peer_id: "${HONCHO_ASSISTANT_PEER_ID}"
+    addressee_aliases:
+      - "Example Assistant"
+      - "Helper Alias"
+  reasoning:
+    custom_instructions: >-
+      Treat metadata as authoritative. First-person references belong to the
+      speaker, and second-person references belong to the addressee. An
+      assistant-authored claim about the user remains unverified until the user
+      explicitly confirms it.

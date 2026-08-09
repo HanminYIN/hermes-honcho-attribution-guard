@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+PACKAGE_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+
+usage() {
+  cat <<'EOF'
+Hermes Honcho Attribution Guard
+
+Usage:
+  ./honcho-guard setup [HERMES_ROOT]
+  ./honcho-guard status [HERMES_ROOT]
+  ./honcho-guard install [HERMES_ROOT]
+  ./honcho-guard rollback [HERMES_ROOT]
+  ./honcho-guard identity show [HERMES_ROOT]
+  ./honcho-guard identity edit [HERMES_ROOT]
+  ./honcho-guard identity clear [HERMES_ROOT]
+  ./honcho-guard verify
+  ./honcho-guard version
+
+HERMES_ROOT can be omitted when:
+  - the current directory is a Hermes checkout;
+  - HAG_HERMES_ROOT is set; or
+  - the command is running interactively (you will be prompted).
+
+Examples:
+  ./honcho-guard setup /path/to/hermes-agent
+  ./honcho-guard status /path/to/hermes-agent
+  ./honcho-guard install /path/to/hermes-agent
+  HAG_HERMES_ROOT=/path/to/hermes-agent ./honcho-guard rollback
+EOF
+}
+
+fail() {
+  printf 'error: %s\n' "$*" >&2
+  exit 2
+}
+
+looks_like_hermes_root() {
+  local candidate=$1
+  [[ -f "$candidate/pyproject.toml" \
+    && -f "$candidate/plugins/memory/honcho/session.py" ]]
+}
+
+choose_hermes_root() {
+  local supplied=${1:-}
+  local selected
+
+  if [[ -n "$supplied" ]]; then
+    selected=$supplied
+  elif [[ -n "${HAG_HERMES_ROOT:-}" ]]; then
+    selected=$HAG_HERMES_ROOT
+  elif looks_like_hermes_root "$PWD"; then
+    selected=$PWD
+  elif [[ -t 0 ]]; then
+    printf 'Hermes checkout path: ' >&2
+    IFS= read -r selected
+    selected=${selected#\"}
+    selected=${selected%\"}
+    selected=${selected#\'}
+    selected=${selected%\'}
+  else
+    fail "Hermes root was not provided. Pass its path or set HAG_HERMES_ROOT."
+  fi
+
+  [[ -n "$selected" ]] || fail "Hermes root cannot be empty"
+  printf '%s\n' "$selected"
+}
+
+run_with_root() {
+  local script=$1
+  local supplied=${2:-}
+  local root
+  root="$(choose_hermes_root "$supplied")"
+  printf 'Hermes root: %s\n' "$root"
+  "$PACKAGE_ROOT/scripts/$script" "$root"
+}
+
+command_name=${1:-help}
+case "$command_name" in
+  help|-h|--help)
+    [[ $# -eq 1 || $# -eq 0 ]] || fail "help does not accept additional arguments"
+    usage
+    ;;
+  version|--version)
+    [[ $# -eq 1 ]] || fail "version does not accept additional arguments"
+    python3 - "$PACKAGE_ROOT/compatibility.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    data = json.load(handle)
+print(
+    f"{data['package']['name']} {data['package']['version']} "
+    f"(Hermes {data['upstream']['release_tag']})"
+)
+PY
+    ;;
+  status|doctor)
+    [[ $# -le 2 ]] || fail "$command_name accepts at most one Hermes root"
+    run_with_root status.sh "${2:-}"
+    ;;
+  setup)
+    [[ $# -le 2 ]] || fail "setup accepts at most one Hermes root"
+    run_with_root setup.sh "${2:-}"
+    ;;
+  install)
+    [[ $# -le 2 ]] || fail "install accepts at most one Hermes root"
+    run_with_root install.sh "${2:-}"
+    printf '\nNext: restart Hermes with your existing service manager when convenient.\n'
+    printf 'This package intentionally does not restart services.\n'
+    ;;
+  rollback)
+    [[ $# -le 2 ]] || fail "rollback accepts at most one Hermes root"
+    run_with_root rollback.sh "${2:-}"
+    printf '\nNext: restart Hermes with your existing service manager when convenient.\n'
+    printf 'The verified backup remains available for audit.\n'
+    ;;
+  identity)
+    [[ $# -ge 2 && $# -le 3 ]] || {
+      fail "identity requires show, edit, or clear, plus an optional Hermes root"
+    }
+    identity_action=$2
+    identity_root="$(choose_hermes_root "${3:-}")"
+    case "$identity_action" in
+      show)
+        python3 "$PACKAGE_ROOT/scripts/identity.py" show "$identity_root"
+        ;;
+      edit)
+        "$PACKAGE_ROOT/scripts/setup.sh" --identity-only "$identity_root"
+        ;;
+      clear)
+        [[ -t 0 ]] || fail "identity clear requires an interactive terminal"
+        printf 'Clear the private identity profile? This cannot be undone. [y/N] '
+        IFS= read -r clear_answer
+        case "${clear_answer:-n}" in
+          y|Y|yes|YES|是)
+            python3 "$PACKAGE_ROOT/scripts/identity.py" clear "$identity_root"
+            ;;
+          *)
+            printf 'identity profile kept\n'
+            ;;
+        esac
+        ;;
+      *)
+        fail "unknown identity action: $identity_action"
+        ;;
+    esac
+    ;;
+  verify)
+    [[ $# -eq 1 ]] || fail "verify does not accept a Hermes root"
+    exec "$PACKAGE_ROOT/scripts/check.sh"
+    ;;
+  *)
+    usage >&2
+    fail "unknown command: $command_name"
+    ;;
+esac

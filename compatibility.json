@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "package": {
+    "name": "hermes-honcho-attribution-guard",
+    "version": "0.1.0"
+  },
+  "upstream": {
+    "repository": "https://github.com/NousResearch/hermes-agent",
+    "release_tag": "v2026.8.3",
+    "release_name": "Hermes Agent v0.20.0 (2026.8.3)",
+    "commit": "3c27eb6234bf91b8ceee9e9071591b31e9b148cb",
+    "python_package": {
+      "name": "hermes-agent",
+      "version": "0.20.0"
+    },
+    "license": "MIT",
+    "license_sha256": "821556e6336796450ab852d375117b48a4887e71d255794fd6318d99982a5ab6"
+  },
+  "honcho_sdk": {
+    "distribution": "honcho-ai",
+    "version": "2.2.0"
+  },
+  "target": {
+    "path": "plugins/memory/honcho/session.py",
+    "pristine_sha256": "05b6b1076028d53a1010de294207ae8769c6bbd54d592c71739226f03ca58eb8",
+    "patched_sha256": "c7b53d496756e4f716bd25339e0b8aec128dc57320d2ff3acd656ed78cf837e8"
+  },
+  "patch": {
+    "path": "patches/hermes-2026.8.3.patch",
+    "strip": 1,
+    "sha256": "3904992555aab25269627c4372ad9671b22d6fc9176068a3ff5af7bd0fadb9c6"
+  }
+}
