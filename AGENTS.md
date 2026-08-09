@@ -33,6 +33,9 @@ fork or add deployment automation.
   copy. Generated files belong under the ignored `dist/` directory.
 - Keep the Chinese-primary and English documentation pairs synchronized:
   `README*`, `RELEASE_NOTES*`, `CONTRIBUTING*`, and `SECURITY*`.
+- Keep GitHub Actions read-only by default, pin every external action to a full
+  commit SHA, and never expose secrets to pull-request workflows. CI may verify
+  and build local artifacts but must not publish, deploy, or restart services.
 
 ## Compatibility changes
 

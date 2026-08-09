@@ -200,6 +200,9 @@ SHA256，在临时副本应用补丁、编译、运行测试并执行敏感信�
 ./honcho-guard verify
 ```
 
+同一验证会在 GitHub Actions 中对推送到 `main`、Pull Request 和手动触发运行。CI
+只有仓库内容读取权限，不持有发布或部署权限；外部 Action 固定到完整 commit SHA。
+
 生成本地发布资产：
 
 ```bash

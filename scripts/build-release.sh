@@ -20,6 +20,7 @@ ARCHIVE_NAME="${RELEASE_NAME}.tar.gz"
 # the repository may contain unrelated local audit material.
 release_files=(
   .gitignore
+  .github/workflows/ci.yml
   AGENTS.md
   AUDIT.md
   CONTRIBUTING.md

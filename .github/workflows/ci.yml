@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify patch package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install required tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes curl patch ripgrep
+
+      - name: Verify source, patch, tests, and privacy boundary
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: ./honcho-guard verify
+
+      - name: Build and verify release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./scripts/build-release.sh
+          (
+            cd dist
+            sha256sum --check SHA256SUMS
+          )
+
+          extract_root="$(mktemp -d)"
+          tar -xzf dist/hermes-honcho-attribution-guard-v0.1.0.tar.gz \
+            -C "$extract_root"
+          (
+            cd "$extract_root/hermes-honcho-attribution-guard-v0.1.0"
+            sha256sum --check MANIFEST.sha256
+          )
+
+          rebuilt_root="$(mktemp -d)"
+          HAG_RELEASE_DIR="$rebuilt_root" ./scripts/build-release.sh
+          cmp \
+            dist/hermes-honcho-attribution-guard-v0.1.0.tar.gz \
+            "$rebuilt_root/hermes-honcho-attribution-guard-v0.1.0.tar.gz"

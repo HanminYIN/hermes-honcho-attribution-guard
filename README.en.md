@@ -211,6 +211,10 @@ to a temporary copy, compiles it, runs tests, and scans for sensitive material:
 ./honcho-guard verify
 ```
 
+GitHub Actions runs the same verification on pushes to `main`, pull requests,
+and manual dispatches. CI has read-only repository permission, no release or
+deployment authority, and pins external actions to full commit SHAs.
+
 Build local release assets with:
 
 ```bash
