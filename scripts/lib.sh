@@ -19,6 +19,29 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
 }
 
+apply_compatibility_patch() {
+  local stage_root=$1
+
+  if command -v patch >/dev/null 2>&1; then
+    (
+      cd -- "$stage_root"
+      patch --batch --forward -p"$PATCH_STRIP" < "$PATCH_FILE"
+    )
+    return
+  fi
+
+  if command -v git >/dev/null 2>&1; then
+    (
+      cd -- "$stage_root"
+      git apply --check -p"$PATCH_STRIP" "$PATCH_FILE"
+      git apply -p"$PATCH_STRIP" "$PATCH_FILE"
+    )
+    return
+  fi
+
+  die "required command not found: patch or git"
+}
+
 reject_symlink_components() {
   local root=$1
   local candidate=$2

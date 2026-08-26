@@ -1,6 +1,6 @@
 --- a/plugins/memory/honcho/session.py
 +++ b/plugins/memory/honcho/session.py
-@@ -3,12 +3,14 @@
+@@ -3,6 +3,7 @@
  from __future__ import annotations
  
  import hashlib
@@ -8,14 +8,7 @@
  import queue
  import re
  import logging
- import threading
- from dataclasses import dataclass, field
- from datetime import datetime
-+from pathlib import Path
- from typing import Any, TYPE_CHECKING
- 
- from plugins.memory.honcho.client import get_honcho_client
-@@ -22,7 +24,129 @@
+@@ -24,6 +25,128 @@ logger = logging.getLogger(__name__)
  _ASYNC_SHUTDOWN = object()
  _PEER_ID_HASH_LEN = 8
  _PEER_ID_HASH_ESCALATION_LENGTHS = (_PEER_ID_HASH_LEN, 12, 16, 24, 32, 64)
@@ -134,18 +127,17 @@
 +            if key not in seen:
 +                seen.add(key)
 +                result[role].append(label)
- 
++
 +    user_keys = {value.casefold() for value in result["user"]}
 +    assistant_keys = {value.casefold() for value in result["assistant"]}
 +    if user_keys & assistant_keys:
 +        logger.warning("Ignoring Honcho identity profile with cross-peer alias conflicts")
 +        return empty
 +    return result
-+
  
- @dataclass
- class HonchoSession:
-@@ -100,6 +224,7 @@
+ 
+ class HonchoAuthError(RuntimeError):
+@@ -147,6 +270,7 @@ class HonchoSessionManager:
          self._config = config
          self._runtime_user_peer_name = runtime_user_peer_name
          self._runtime_user_peer_name_alt = runtime_user_peer_name_alt
@@ -153,11 +145,10 @@
          self._cache: dict[str, HonchoSession] = {}
          self._cache_lock = threading.RLock()
          self._peers_cache: dict[str, Any] = {}
-@@ -417,7 +542,122 @@
-         with self._cache_lock:
+@@ -657,6 +781,121 @@ class HonchoSessionManager:
              self._cache[key] = session
          return session
-+
+ 
 +    def _format_honcho_content(
 +        self,
 +        session: HonchoSession,
@@ -186,7 +177,7 @@
 +            addressee_aliases = identity_aliases.get("user", [])
 +        else:
 +            return content, None, None
- 
++
 +        instructions = (
 +            "Hermes attribution guard v2. Treat message metadata as authoritative. "
 +            f"The speaker is peer '{speaker_peer_id}' with role '{role}', and the "
@@ -276,38 +267,44 @@
      def _flush_session(self, session: HonchoSession) -> bool:
          """Internal: write unsynced messages to Honcho synchronously."""
          if not session.messages:
-@@ -439,7 +679,18 @@
-         honcho_messages = []
-         for msg in new_messages:
-             peer = user_peer if msg["role"] == "user" else assistant_peer
--            honcho_messages.append(peer.message(msg["content"]))
-+            content, metadata, configuration = self._format_honcho_content(
-+                session,
-+                msg["role"],
-+                msg["content"],
-+            )
-+            honcho_messages.append(
-+                peer.message(
-+                    content,
-+                    metadata=metadata,
-+                    configuration=configuration,
+@@ -675,10 +914,21 @@ class HonchoSessionManager:
+                 honcho_session, _ = self._get_or_create_honcho_session(
+                     session.honcho_session_id, user_peer, assistant_peer
+                 )
+-            honcho_messages = [
+-                (user_peer if m["role"] == "user" else assistant_peer).message(m["content"])
+-                for m in new_messages
+-            ]
++            honcho_messages = []
++            for message in new_messages:
++                peer = user_peer if message["role"] == "user" else assistant_peer
++                content, metadata, configuration = self._format_honcho_content(
++                    session,
++                    message["role"],
++                    message["content"],
 +                )
-+            )
- 
-         try:
++                honcho_messages.append(
++                    peer.message(
++                        content,
++                        metadata=metadata,
++                        configuration=configuration,
++                    )
++                )
              honcho_session.add_messages(honcho_messages)
-@@ -751,7 +1002,9 @@
-             if honcho_session:
-                 ctx = honcho_session.context(summary=True)
+             return len(honcho_messages)
+ 
+@@ -1019,7 +1269,9 @@ class HonchoSessionManager:
+                     lambda: self._sdk_session(session.honcho_session_id).context(summary=True),
+                 )
                  if ctx.summary and getattr(ctx.summary, "content", None):
 -                    result["summary"] = ctx.summary.content
 +                    result["summary"] = self._filter_honcho_memory_text(
 +                        ctx.summary.content
 +                    )
-         except Exception as e:
-             logger.debug("Failed to fetch session summary from Honcho: %s", e)
- 
-@@ -1013,7 +1266,10 @@
+         except HonchoAuthError:
+             # Auth is dead; the pop_auth_notice path tells the model why context is missing.
+             return result
+@@ -1342,7 +1594,10 @@ class HonchoSessionManager:
              except Exception as e:
                  logger.debug("Direct peer card fetch failed for '%s': %s", peer_id, e)
  
@@ -319,7 +316,7 @@
  
      def get_session_context(self, session_key: str, peer: str = "user") -> dict[str, Any]:
          """Fetch full session context from Honcho including summary.
-@@ -1045,13 +1301,19 @@
+@@ -1377,13 +1632,19 @@ class HonchoSessionManager:
  
              # Summary
              if ctx.summary:

@@ -1,10 +1,23 @@
-# hermes-honcho-attribution-guard v0.1.0
+# hermes-honcho-attribution-guard v0.2.0
 
 <p align="right">
   <a href="./RELEASE_NOTES.md">简体中文</a> · <strong>English</strong>
 </p>
 
 > Safer identity attribution for Hermes Agent's built-in Honcho memory provider.
+
+## Changes in v0.2.0
+
+- Rebuilt the patch from the pristine official Hermes `v2026.8.19` /
+  `hermes-agent 0.20.5` tag.
+- Adapted to the new authenticated retry and asynchronous batch-message path in
+  the Honcho session manager.
+- Preserved the `honcho-ai==2.2.0` message-level metadata and reasoning
+  configuration contract.
+- Added a checked `git apply` fallback when POSIX `patch` is unavailable; the
+  staged output must still match the exact recorded patched SHA256.
+- Retained version rejection, unknown-change rejection, backup validation,
+  idempotent install/rollback, and privacy-scan gates.
 
 ## Overview
 
@@ -42,15 +55,15 @@ memory provider and not a Hermes fork. It patches only
 
 This release provides two downloadable assets:
 
-- `hermes-honcho-attribution-guard-v0.1.0.tar.gz` — the complete patch package;
+- `hermes-honcho-attribution-guard-v0.2.0.tar.gz` — the complete patch package;
 - `SHA256SUMS` — the archive checksum.
 
 Verify the download, extract it, and verify the inner file manifest:
 
 ```bash
 shasum -a 256 -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.1.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.1.0
+tar -xzf hermes-honcho-attribution-guard-v0.2.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.2.0
 shasum -a 256 -c MANIFEST.sha256
 ```
 
@@ -67,7 +80,8 @@ To undo the patch:
 ```
 
 Before writing, the installer verifies the Hermes version, target SHA256, and
-patch SHA256, then retains a verifiable pristine backup. It safely refuses an
+patch SHA256, then retains a verifiable pristine backup. It prefers POSIX
+`patch` and falls back to `git apply` when needed. It safely refuses an
 incompatible version, unknown local changes, an invalid backup, or a symbolic
 link. Install and rollback are idempotent.
 
@@ -80,14 +94,14 @@ is kept inside the Hermes checkout with file mode `0600`. Alias values are sent
 as structured message metadata to the user's configured Honcho backend; the
 wizard discloses this and asks for explicit consent before collection.
 
-The `v0.1.0` alias profile is intended only for a single-user Hermes instance.
+The `v0.2.0` alias profile is intended only for a single-user Hermes instance.
 Multi-user gateways should skip it and continue using core attribution without
 aliases.
 
 ## Compatibility
 
-- Hermes release: `v2026.8.3`
-- `hermes-agent`: `0.20.0`
+- Hermes release: `v2026.8.19`
+- `hermes-agent`: `0.20.5`
 - Honcho SDK: `honcho-ai==2.2.0`
 - Guard package: `0.1.0`
 

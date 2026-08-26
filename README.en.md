@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v0.1.0</code>　<code>Hermes v2026.8.3</code>　<code>MIT</code>
+  <code>v0.2.0</code>　<code>Hermes v2026.8.19</code>　<code>MIT</code>
 </p>
 
 `hermes-honcho-attribution-guard` is a small, verifiable, and reversible patch
@@ -31,7 +31,7 @@ It is not a new memory provider and not a Hermes fork. The patch changes only
 Hermes configuration, or restart any service.
 
 > [!IMPORTANT]
-> This release supports only Hermes `v2026.8.3` (Python package `0.20.0`). The
+> This release supports only Hermes `v2026.8.19` (Python package `0.20.5`). The
 > installer verifies the version, target-file SHA256, and patch SHA256. If any
 > value differs, it exits safely without changing the target.
 
@@ -65,15 +65,15 @@ are not used to resolve “I” or “you.”
 
 Download both assets from [GitHub Releases](../../releases):
 
-- `hermes-honcho-attribution-guard-v0.1.0.tar.gz`
+- `hermes-honcho-attribution-guard-v0.2.0.tar.gz`
 - `SHA256SUMS`
 
 macOS:
 
 ```bash
 shasum -a 256 -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.1.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.1.0
+tar -xzf hermes-honcho-attribution-guard-v0.2.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.2.0
 shasum -a 256 -c MANIFEST.sha256
 ```
 
@@ -81,8 +81,8 @@ Linux:
 
 ```bash
 sha256sum -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.1.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.1.0
+tar -xzf hermes-honcho-attribution-guard-v0.2.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.2.0
 sha256sum -c MANIFEST.sha256
 ```
 
@@ -95,6 +95,10 @@ sha256sum -c MANIFEST.sha256
 The wizard finds or asks for the Hermes checkout, reports compatibility, installs
 after confirmation, and offers optional identity aliases. Users do not need to
 apply the patch file manually.
+
+The installer prefers POSIX `patch`. If it is unavailable but `git` is present,
+it runs `git apply --check` before applying and still verifies the exact patched
+SHA256.
 
 ### 3. Restart Hermes with your existing service manager
 
@@ -129,7 +133,7 @@ The wizard confirms, in order:
 ```
 
 > [!WARNING]
-> The `v0.1.0` alias profile is for single-user Hermes instances only. Skip this
+> The `v0.2.0` alias profile is for single-user Hermes instances only. Skip this
 > feature on a multi-user gateway. Core attribution remains available without it.
 
 The profile is stored at
@@ -159,13 +163,13 @@ Compatibility is an exact version-and-hash contract, not a fuzzy range:
 
 | Item | Required value |
 | --- | --- |
-| Hermes release | `v2026.8.3` |
-| `hermes-agent` Python package | `0.20.0` |
-| Upstream commit | `3c27eb6234bf91b8ceee9e9071591b31e9b148cb` |
+| Hermes release | `v2026.8.19` |
+| `hermes-agent` Python package | `0.20.5` |
+| Upstream commit | `fcbd1076a93841fa88855acce810e342a5b78101` |
 | Honcho SDK | `honcho-ai==2.2.0` |
 | Target | `plugins/memory/honcho/session.py` |
-| Pristine SHA256 | `05b6b1076028d53a1010de294207ae8769c6bbd54d592c71739226f03ca58eb8` |
-| Patched SHA256 | `c7b53d496756e4f716bd25339e0b8aec128dc57320d2ff3acd656ed78cf837e8` |
+| Pristine SHA256 | `0feada7c6db22376d5dea5bcf9afc9573612f791892294288495d979a1afa7d4` |
+| Patched SHA256 | `fdb1f7ee13b48aa0b2fb6ea187984801e256a046b8811a3a4e7b05f535795762` |
 
 See [compatibility.json](./compatibility.json) for the machine-readable record.
 
@@ -174,7 +178,7 @@ See [compatibility.json](./compatibility.json) for the machine-readable record.
 Before installation, the exact pristine target is retained at:
 
 ```text
-HERMES_ROOT/.hermes-honcho-attribution-guard/backups/v2026.8.3/plugins/memory/honcho/session.py
+HERMES_ROOT/.hermes-honcho-attribution-guard/backups/v2026.8.19/plugins/memory/honcho/session.py
 ```
 
 To restore it:
@@ -211,6 +215,10 @@ to a temporary copy, compiles it, runs tests, and scans for sensitive material:
 ./honcho-guard verify
 ```
 
+If GitHub Raw is rate-limited, maintainers may set `HERMES_UPSTREAM_ROOT` to a
+checkout of the exact tag. The same target, license, version, and SDK hash gates
+still run.
+
 GitHub Actions runs the same verification on pushes to `main`, pull requests,
 and manual dispatches. CI has read-only repository permission, no release or
 deployment authority, and pins external actions to full commit SHAs.
@@ -229,7 +237,7 @@ inner `MANIFEST.sha256`. Identical source files produce an identical archive has
 ## Upstream and license
 
 This patch targets [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)
-release [`v2026.8.3`](https://github.com/NousResearch/hermes-agent/releases/tag/v2026.8.3).
+release [`v2026.8.19`](https://github.com/NousResearch/hermes-agent/releases/tag/v2026.8.19).
 Hermes Agent is distributed under the MIT License. The upstream license and
 copyright notice are preserved verbatim in [LICENSE](./LICENSE).
 
