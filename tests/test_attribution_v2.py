@@ -560,5 +560,18 @@ class IdentityProfileToolTests(unittest.TestCase):
         )
 
 
+class ReleaseMetadataTests(unittest.TestCase):
+    def test_release_notes_match_package_version(self) -> None:
+        version = COMPATIBILITY["package"]["version"]
+        chinese_notes = (PROJECT_ROOT / "RELEASE_NOTES.md").read_text(
+            encoding="utf-8"
+        )
+        english_notes = (PROJECT_ROOT / "RELEASE_NOTES.en.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(f"- 补丁包版本：`{version}`", chinese_notes)
+        self.assertIn(f"- Guard package: `{version}`", english_notes)
+
+
 if __name__ == "__main__":
     unittest.main()

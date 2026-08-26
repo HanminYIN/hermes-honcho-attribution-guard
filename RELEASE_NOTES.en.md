@@ -103,7 +103,7 @@ aliases.
 - Hermes release: `v2026.8.19`
 - `hermes-agent`: `0.20.5`
 - Honcho SDK: `honcho-ai==2.2.0`
-- Guard package: `0.1.0`
+- Guard package: `0.2.0`
 
 Compatibility is enforced with exact versions and SHA256 values. The patch is
 never fuzzily applied to a similar release.
