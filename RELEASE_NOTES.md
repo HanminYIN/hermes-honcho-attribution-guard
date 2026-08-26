@@ -1,10 +1,19 @@
-# hermes-honcho-attribution-guard v0.1.0
+# hermes-honcho-attribution-guard v0.2.0
 
 <p align="right">
   <strong>简体中文</strong> · <a href="./RELEASE_NOTES.en.md">English</a>
 </p>
 
 > Safer identity attribution for Hermes Agent's built-in Honcho memory provider.
+
+## v0.2.0 更新
+
+- 重新基于官方 Hermes `v2026.8.19` / `hermes-agent 0.20.5` 的干净标签源码生成补丁；
+- 适配新版 Honcho session 的认证重试与异步批量消息写入结构；
+- 保持 `honcho-ai==2.2.0` 的消息级 metadata 与推理配置契约；
+- 安装器在没有 POSIX `patch` 时使用经过 `--check` 的 `git apply` 回退，最终产物仍需
+  精确匹配记录的补丁后 SHA256；
+- 保留版本拒绝、未知修改拒绝、备份校验、安装/回滚幂等和隐私扫描门禁。
 
 ## 简介
 
@@ -35,15 +44,15 @@ peer ID、消息作者与第一/第二人称映射始终具有更高优先级。
 
 本 Release 提供两个下载文件：
 
-- `hermes-honcho-attribution-guard-v0.1.0.tar.gz`：完整补丁工具包；
+- `hermes-honcho-attribution-guard-v0.2.0.tar.gz`：完整补丁工具包；
 - `SHA256SUMS`：压缩包校验和。
 
 下载后先校验并解压；压缩包内的 `MANIFEST.sha256` 可以继续核验每一个文件：
 
 ```bash
 shasum -a 256 -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.1.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.1.0
+tar -xzf hermes-honcho-attribution-guard-v0.2.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.2.0
 shasum -a 256 -c MANIFEST.sha256
 ```
 
@@ -60,7 +69,8 @@ Linux 用户可以使用 `sha256sum -c`。校验通过后，普通用户只需�
 ```
 
 安装器会在写入前核验 Hermes 版本、目标文件 SHA256 和补丁 SHA256，并先保存可验证
-的原始文件备份。遇到不兼容版本、未知本地修改、异常备份或符号链接时会安全退出。
+的原始文件备份。打补丁时优先使用 POSIX `patch`，缺失时回退到 `git apply`。遇到
+不兼容版本、未知本地修改、异常备份或符号链接时会安全退出。
 安装和回滚均可重复执行。
 
 本工具不会修改 Hermes 配置，也不会自动重启服务、容器或控制面板。安装或回滚后，
@@ -71,13 +81,13 @@ Linux 用户可以使用 `sha256sum -c`。校验通过后，普通用户只需�
 映射，称呼值会作为结构化消息 metadata 发送到用户已配置的 Honcho 后端；向导会在
 采集前明确告知并再次取得同意。
 
-`v0.1.0` 的可选称呼档案仅面向单用户 Hermes 实例；多用户网关应跳过称呼配置，
+`v0.2.0` 的可选称呼档案仅面向单用户 Hermes 实例；多用户网关应跳过称呼配置，
 继续使用不依赖别名的核心 attribution 功能。
 
 ## 兼容范围
 
-- Hermes release：`v2026.8.3`
-- `hermes-agent`：`0.20.0`
+- Hermes release：`v2026.8.19`
+- `hermes-agent`：`0.20.5`
 - Honcho SDK：`honcho-ai==2.2.0`
 - 补丁包版本：`0.1.0`
 

@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v0.1.0</code>　<code>Hermes v2026.8.3</code>　<code>MIT</code>
+  <code>v0.2.0</code>　<code>Hermes v2026.8.19</code>　<code>MIT</code>
 </p>
 
 `hermes-honcho-attribution-guard` 是一个面向 Hermes Agent 内置 Honcho memory
@@ -30,7 +30,7 @@ provider 的小型、可验证、可回滚补丁工具。它为每条用户与�
 自动重启任何服务。
 
 > [!IMPORTANT]
-> 本版本只支持 Hermes `v2026.8.3`（Python package `0.20.0`）。安装器会同时核验
+> 本版本只支持 Hermes `v2026.8.19`（Python package `0.20.5`）。安装器会同时核验
 > 版本、目标文件 SHA256 与补丁 SHA256；任一项不匹配都会保持原文件不变并安全退出。
 
 ## 它解决什么问题
@@ -62,15 +62,15 @@ provider 的小型、可验证、可回滚补丁工具。它为每条用户与�
 
 从 [GitHub Releases](../../releases) 下载这两个文件：
 
-- `hermes-honcho-attribution-guard-v0.1.0.tar.gz`
+- `hermes-honcho-attribution-guard-v0.2.0.tar.gz`
 - `SHA256SUMS`
 
 macOS：
 
 ```bash
 shasum -a 256 -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.1.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.1.0
+tar -xzf hermes-honcho-attribution-guard-v0.2.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.2.0
 shasum -a 256 -c MANIFEST.sha256
 ```
 
@@ -78,8 +78,8 @@ Linux：
 
 ```bash
 sha256sum -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.1.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.1.0
+tar -xzf hermes-honcho-attribution-guard-v0.2.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.2.0
 sha256sum -c MANIFEST.sha256
 ```
 
@@ -91,6 +91,9 @@ sha256sum -c MANIFEST.sha256
 
 向导会查找或询问 Hermes checkout 路径、显示兼容状态、在确认后安装补丁，并询问是否
 配置可选身份称呼。普通用户不需要直接操作 patch 文件。
+
+安装器优先使用 POSIX `patch`；环境未提供该命令但有 `git` 时，会先执行
+`git apply --check` 再应用，并继续核验精确的补丁后 SHA256。
 
 ### 3. 使用原有方式重启 Hermes
 
@@ -124,7 +127,7 @@ sha256sum -c MANIFEST.sha256
 ```
 
 > [!WARNING]
-> `v0.1.0` 的称呼档案仅适用于单用户 Hermes 实例。多用户网关应跳过此步骤；核心
+> `v0.2.0` 的称呼档案仅适用于单用户 Hermes 实例。多用户网关应跳过此步骤；核心
 > attribution 功能不依赖称呼档案，跳过后仍然可用。
 
 身份档案保存在目标 Hermes checkout 的
@@ -153,13 +156,13 @@ sha256sum -c MANIFEST.sha256
 
 | 项目 | 要求 |
 | --- | --- |
-| Hermes release | `v2026.8.3` |
-| `hermes-agent` Python package | `0.20.0` |
-| 上游 commit | `3c27eb6234bf91b8ceee9e9071591b31e9b148cb` |
+| Hermes release | `v2026.8.19` |
+| `hermes-agent` Python package | `0.20.5` |
+| 上游 commit | `fcbd1076a93841fa88855acce810e342a5b78101` |
 | Honcho SDK | `honcho-ai==2.2.0` |
 | 目标文件 | `plugins/memory/honcho/session.py` |
-| 原始文件 SHA256 | `05b6b1076028d53a1010de294207ae8769c6bbd54d592c71739226f03ca58eb8` |
-| 补丁后 SHA256 | `c7b53d496756e4f716bd25339e0b8aec128dc57320d2ff3acd656ed78cf837e8` |
+| 原始文件 SHA256 | `0feada7c6db22376d5dea5bcf9afc9573612f791892294288495d979a1afa7d4` |
+| 补丁后 SHA256 | `fdb1f7ee13b48aa0b2fb6ea187984801e256a046b8811a3a4e7b05f535795762` |
 
 机器可读的完整记录位于 [compatibility.json](./compatibility.json)。
 
@@ -168,7 +171,7 @@ sha256sum -c MANIFEST.sha256
 安装前，工具会把精确匹配的原始目标文件保存在：
 
 ```text
-HERMES_ROOT/.hermes-honcho-attribution-guard/backups/v2026.8.3/plugins/memory/honcho/session.py
+HERMES_ROOT/.hermes-honcho-attribution-guard/backups/v2026.8.19/plugins/memory/honcho/session.py
 ```
 
 需要撤销时运行：
@@ -200,6 +203,9 @@ SHA256，在临时副本应用补丁、编译、运行测试并执行敏感信�
 ./honcho-guard verify
 ```
 
+遇到 GitHub Raw 限流时，维护者也可设置 `HERMES_UPSTREAM_ROOT` 指向已经检出精确
+标签的只读上游 checkout；相同的目标、许可证、版本和 SDK 哈希门禁仍会执行。
+
 同一验证会在 GitHub Actions 中对推送到 `main`、Pull Request 和手动触发运行。CI
 只有仓库内容读取权限，不持有发布或部署权限；外部 Action 固定到完整 commit SHA。
 
@@ -217,7 +223,7 @@ SHA256，在临时副本应用补丁、编译、运行测试并执行敏感信�
 ## 上游与许可证
 
 本补丁面向 [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)
-release [`v2026.8.3`](https://github.com/NousResearch/hermes-agent/releases/tag/v2026.8.3)。
+release [`v2026.8.19`](https://github.com/NousResearch/hermes-agent/releases/tag/v2026.8.19)。
 Hermes Agent 采用 MIT License；上游许可证和版权声明已原样保留在 [LICENSE](./LICENSE)。
 
 ---

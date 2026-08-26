@@ -12,11 +12,13 @@ must protect reporters, deployments, and user data.
 
 | Guard version | Hermes release | Security support |
 | --- | --- | --- |
+| `0.2.0` | `v2026.8.19` / package `0.20.5` | Supported |
 | `0.1.0` | `v2026.8.3` / package `0.20.0` | Supported |
 | Other versions | Other Hermes releases | Unsupported unless explicitly listed |
 
 [compatibility.json](./compatibility.json) is the machine-readable source of
-truth. Forcing the patch onto an unknown version is not a supported scenario.
+truth for the current version; older releases retain their own compatibility
+records. Forcing the patch onto an unknown version is not a supported scenario.
 
 ## Private reporting
 

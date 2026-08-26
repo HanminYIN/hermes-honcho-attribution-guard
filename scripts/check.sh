@@ -31,7 +31,7 @@ required_files=(
   AGENTS.md
   assets/readme-hero.svg
   compatibility.json
-  patches/hermes-2026.8.3.patch
+  patches/hermes-2026.8.19.patch
   honcho-guard
   scripts/build-release.sh
   scripts/check.sh
@@ -113,23 +113,49 @@ trap cleanup EXIT
 
 official_root="$stage_root/official"
 mkdir -p -- "$official_root"
-baseline_file="${HERMES_BASELINE_FILE:-$official_root/session.py}"
-if [[ -z "${HERMES_BASELINE_FILE:-}" ]]; then
+if [[ -n "${HERMES_UPSTREAM_ROOT:-}" && -n "${HERMES_BASELINE_FILE:-}" ]]; then
+  die "set only one of HERMES_UPSTREAM_ROOT or HERMES_BASELINE_FILE"
+fi
+
+if [[ -n "${HERMES_UPSTREAM_ROOT:-}" ]]; then
+  [[ -d "$HERMES_UPSTREAM_ROOT" ]] || die "HERMES_UPSTREAM_ROOT is not a directory"
+  upstream_root="$(cd -- "$HERMES_UPSTREAM_ROOT" && pwd -P)"
+  baseline_file="$upstream_root/$TARGET_REL"
+  official_license="$upstream_root/LICENSE"
+  official_pyproject="$upstream_root/pyproject.toml"
+  reject_symlink_components "$upstream_root" "$baseline_file" "upstream target"
+  reject_symlink_components "$upstream_root" "$official_license" "upstream license"
+  reject_symlink_components "$upstream_root" "$official_pyproject" "upstream pyproject"
+  [[ -f "$baseline_file" && ! -L "$baseline_file" ]] \
+    || die "upstream target is missing or unsafe"
+  [[ -f "$official_license" && ! -L "$official_license" ]] \
+    || die "upstream LICENSE is missing or unsafe"
+  [[ -f "$official_pyproject" && ! -L "$official_pyproject" ]] \
+    || die "upstream pyproject.toml is missing or unsafe"
+else
+  baseline_file="${HERMES_BASELINE_FILE:-$official_root/session.py}"
+  official_license="$official_root/LICENSE"
+  official_pyproject="$official_root/pyproject.toml"
+fi
+
+if [[ -z "${HERMES_UPSTREAM_ROOT:-}" && -z "${HERMES_BASELINE_FILE:-}" ]]; then
   curl -L --fail --silent --show-error \
     -o "$baseline_file" \
     "https://raw.githubusercontent.com/NousResearch/hermes-agent/$RELEASE_TAG/$TARGET_REL"
 fi
-curl -L --fail --silent --show-error \
-  -o "$official_root/LICENSE" \
-  "https://raw.githubusercontent.com/NousResearch/hermes-agent/$RELEASE_TAG/LICENSE"
-curl -L --fail --silent --show-error \
-  -o "$official_root/pyproject.toml" \
-  "https://raw.githubusercontent.com/NousResearch/hermes-agent/$RELEASE_TAG/pyproject.toml"
+if [[ -z "${HERMES_UPSTREAM_ROOT:-}" ]]; then
+  curl -L --fail --silent --show-error \
+    -o "$official_license" \
+    "https://raw.githubusercontent.com/NousResearch/hermes-agent/$RELEASE_TAG/LICENSE"
+  curl -L --fail --silent --show-error \
+    -o "$official_pyproject" \
+    "https://raw.githubusercontent.com/NousResearch/hermes-agent/$RELEASE_TAG/pyproject.toml"
+fi
 
 [[ "$(sha256_file "$baseline_file")" == "$PRISTINE_SHA256" ]] || die "official target SHA256 mismatch"
-[[ "$(sha256_file "$official_root/LICENSE")" == "$expected_license_sha" ]] || die "official LICENSE SHA256 mismatch"
+[[ "$(sha256_file "$official_license")" == "$expected_license_sha" ]] || die "official LICENSE SHA256 mismatch"
 
-official_version="$(python3 - "$official_root/pyproject.toml" <<'PY'
+official_version="$(python3 - "$official_pyproject" <<'PY'
 import re
 import sys
 

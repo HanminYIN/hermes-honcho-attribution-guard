@@ -11,11 +11,12 @@
 
 | 补丁包版本 | Hermes release | 安全支持 |
 | --- | --- | --- |
+| `0.2.0` | `v2026.8.19` / package `0.20.5` | 支持 |
 | `0.1.0` | `v2026.8.3` / package `0.20.0` | 支持 |
 | 其他版本 | 其他 Hermes release | 不支持，除非兼容记录明确列出 |
 
-兼容范围的机器可读来源是 [compatibility.json](./compatibility.json)。对未知版本强制
-应用补丁不属于受支持场景。
+当前版本兼容范围的机器可读来源是 [compatibility.json](./compatibility.json)；旧版本
+Release 保留各自的兼容记录。对未知版本强制应用补丁不属于受支持场景。
 
 ## 如何私密报告
 

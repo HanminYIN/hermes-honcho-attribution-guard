@@ -17,12 +17,14 @@ import urllib.request
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+BASH = shutil.which("bash") or "/bin/bash"
 COMPATIBILITY = json.loads(
     (PROJECT_ROOT / "compatibility.json").read_text(encoding="utf-8")
 )
 BASELINE_URL = (
     "https://raw.githubusercontent.com/NousResearch/hermes-agent/"
-    "v2026.8.3/plugins/memory/honcho/session.py"
+    f"{COMPATIBILITY['upstream']['release_tag']}/"
+    f"{COMPATIBILITY['target']['path']}"
 )
 
 
@@ -79,7 +81,12 @@ def import_patched_session(path: Path):
 
     client_module = types.ModuleType("plugins.memory.honcho.client")
     client_module.get_honcho_client = lambda: None
+    client_module.spawn_context_thread = lambda *args, **kwargs: None
     sys.modules[client_module.__name__] = client_module
+
+    oauth_module = types.ModuleType("plugins.memory.honcho.oauth")
+    oauth_module.redact_tokens = str
+    sys.modules[oauth_module.__name__] = oauth_module
 
     module_name = "honcho_attribution_guard_test_session"
     spec = importlib.util.spec_from_file_location(module_name, path)
@@ -273,6 +280,7 @@ class AttributionBehaviorTests(unittest.TestCase):
         manager._sessions_cache = {"example-session": FakeRemoteSession()}
         manager._cache_lock = threading.RLock()
         manager._cache = {}
+        manager._authed_call = lambda _op_name, operation: operation()
         session = self.module.HonchoSession(
             key="example-channel:example-session",
             user_peer_id="example-user",
@@ -340,8 +348,8 @@ class InstallerSafetyTests(unittest.TestCase):
             "schema_version": 1,
             "package": {"name": "test-package", "version": "test-version"},
             "upstream": {
-                "release_tag": "v2026.8.3",
-                "python_package": {"version": "0.20.0"},
+                "release_tag": "v2026.8.19",
+                "python_package": {"version": "0.20.5"},
             },
             "target": {
                 "path": self.target_rel.as_posix(),
@@ -357,7 +365,7 @@ class InstallerSafetyTests(unittest.TestCase):
         (self.package / "compatibility.json").write_text(
             json.dumps(self.compatibility), encoding="utf-8"
         )
-        self.write_hermes(version="0.20.0", content=self.pristine)
+        self.write_hermes(version="0.20.5", content=self.pristine)
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()
@@ -372,13 +380,18 @@ class InstallerSafetyTests(unittest.TestCase):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(content)
 
-    def run_script(self, name: str) -> subprocess.CompletedProcess[str]:
+    def run_script(
+        self,
+        name: str,
+        *,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            ["bash", str(self.package / "scripts" / name), str(self.hermes)],
+            [BASH, str(self.package / "scripts" / name), str(self.hermes)],
             check=False,
             capture_output=True,
             text=True,
-            env={**os.environ, "LC_ALL": "C"},
+            env={**os.environ, "LC_ALL": "C", **(env or {})},
         )
 
     def test_incompatible_version_is_rejected_without_backup(self) -> None:
@@ -391,7 +404,7 @@ class InstallerSafetyTests(unittest.TestCase):
         )
 
     def test_incompatible_hash_is_rejected_without_backup(self) -> None:
-        self.write_hermes(version="0.20.0", content=b"local modification\n")
+        self.write_hermes(version="0.20.5", content=b"local modification\n")
         result = self.run_script("install.sh")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(
@@ -402,7 +415,7 @@ class InstallerSafetyTests(unittest.TestCase):
         )
 
     def test_patched_target_without_verified_backup_is_rejected(self) -> None:
-        self.write_hermes(version="0.20.0", content=self.patched)
+        self.write_hermes(version="0.20.5", content=self.patched)
         result = self.run_script("install.sh")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual((self.hermes / self.target_rel).read_bytes(), self.patched)
@@ -428,7 +441,7 @@ class InstallerSafetyTests(unittest.TestCase):
 
         backup = (
             self.hermes
-            / ".hermes-honcho-attribution-guard/backups/v2026.8.3"
+            / ".hermes-honcho-attribution-guard/backups/v2026.8.19"
             / self.target_rel
         )
         self.assertEqual(backup.read_bytes(), self.pristine)
@@ -440,6 +453,33 @@ class InstallerSafetyTests(unittest.TestCase):
         self.assertIn("already rolled back", second_rollback.stdout)
         self.assertEqual((self.hermes / self.target_rel).read_bytes(), self.pristine)
         self.assertEqual(backup.read_bytes(), self.pristine)
+
+    def test_install_falls_back_to_git_when_patch_is_unavailable(self) -> None:
+        tool_dir = self.root / "git-only-tools"
+        tool_dir.mkdir()
+        required = [
+            "awk",
+            "cp",
+            "dirname",
+            "git",
+            "mkdir",
+            "mktemp",
+            "mv",
+            "python3",
+            "rm",
+        ]
+        hash_tool = "sha256sum" if shutil.which("sha256sum") else "shasum"
+        required.append(hash_tool)
+        if shutil.which("xcrun"):
+            required.append("xcrun")
+        for name in required:
+            source = shutil.which(name)
+            self.assertIsNotNone(source, f"required test tool is missing: {name}")
+            (tool_dir / name).symlink_to(source)
+
+        result = self.run_script("install.sh", env={"PATH": str(tool_dir)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.hermes / self.target_rel).read_bytes(), self.patched)
 
 
 class IdentityProfileToolTests(unittest.TestCase):

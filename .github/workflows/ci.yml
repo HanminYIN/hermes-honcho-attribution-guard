@@ -47,15 +47,15 @@ jobs:
           )
 
           extract_root="$(mktemp -d)"
-          tar -xzf dist/hermes-honcho-attribution-guard-v0.1.0.tar.gz \
+          tar -xzf dist/hermes-honcho-attribution-guard-v0.2.0.tar.gz \
             -C "$extract_root"
           (
-            cd "$extract_root/hermes-honcho-attribution-guard-v0.1.0"
+            cd "$extract_root/hermes-honcho-attribution-guard-v0.2.0"
             sha256sum --check MANIFEST.sha256
           )
 
           rebuilt_root="$(mktemp -d)"
           HAG_RELEASE_DIR="$rebuilt_root" ./scripts/build-release.sh
           cmp \
-            dist/hermes-honcho-attribution-guard-v0.1.0.tar.gz \
-            "$rebuilt_root/hermes-honcho-attribution-guard-v0.1.0.tar.gz"
+            dist/hermes-honcho-attribution-guard-v0.2.0.tar.gz \
+            "$rebuilt_root/hermes-honcho-attribution-guard-v0.2.0.tar.gz"

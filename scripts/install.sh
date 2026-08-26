@@ -16,7 +16,6 @@ if [[ $# -ne 1 || $1 == "-h" || $1 == "--help" ]]; then
   exit 2
 fi
 
-require_command patch
 require_command mktemp
 load_compatibility
 resolve_hermes_root "$1"
@@ -56,10 +55,7 @@ trap cleanup EXIT
 stage_target="$stage_root/$TARGET_REL"
 mkdir -p -- "$(dirname -- "$stage_target")"
 cp -p -- "$TARGET_FILE" "$stage_target"
-(
-  cd -- "$stage_root"
-  patch --batch --forward -p"$PATCH_STRIP" < "$PATCH_FILE"
-)
+apply_compatibility_patch "$stage_root"
 
 stage_sha="$(sha256_file "$stage_target")"
 [[ "$stage_sha" == "$PATCHED_SHA256" ]] || die "patched output SHA256 mismatch"
