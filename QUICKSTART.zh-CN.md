@@ -4,8 +4,8 @@
 
 ```bash
 shasum -a 256 -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.2.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.2.0
+tar -xzf hermes-honcho-attribution-guard-v0.3.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.3.0
 shasum -a 256 -c MANIFEST.sha256
 ```
 
@@ -63,7 +63,7 @@ Linux 用户也可以把 `shasum -a 256 -c` 替换为 `sha256sum -c`。
 它不用于判断“我”和“你”，也不能覆盖消息的真实作者。优先级始终是：peer ID、消息
 角色、speaker/addressee 映射，最后才是可选称呼。
 
-`v0.2.0` 的称呼档案仅支持单用户 Hermes 实例。多用户网关请跳过这一步；核心身份
+`v0.3.0` 的称呼档案仅支持单用户 Hermes 实例。多用户网关请跳过这一步；核心身份
 归属补丁不依赖称呼档案，跳过后仍可正常使用。
 
 ```bash

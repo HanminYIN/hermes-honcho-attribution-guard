@@ -1,20 +1,26 @@
 # Evidence and audit boundary
 
-Audit date: 2026-08-26 (Asia/Singapore).
+Audit date: 2026-09-05 (Asia/Singapore).
 
 ## Currently verified
 
-- The official GitHub release is `v2026.8.19`, named "Hermes Agent v0.20.5
-  (v2026.8.19)". Its annotated tag peels to commit
-  `fcbd1076a93841fa88855acce810e342a5b78101`.
-- The tagged `pyproject.toml` reports package version `0.20.5` and pins
+- The official GitHub release is `v2026.8.31`, named "Hermes Agent v0.21.0
+  (v2026.8.31)". Its annotated tag peels to commit
+  `29112bef099274229cadff79cdff7bf7b99c4b77`.
+- The tagged `pyproject.toml` reports package version `0.21.0` and pins
   `honcho-ai==2.2.0`.
-- The tagged target file and MIT license match the SHA256 values recorded in
-  `compatibility.json`.
+- The tagged target file, MIT license, and `pyproject.toml` match the SHA256
+  values recorded in `compatibility.json`.
 - Honcho SDK `2.2.0` accepts message-level `metadata` and
   `configuration.reasoning.custom_instructions` in `Peer.message()`.
 - The patch is regenerated from the pristine tagged target and changes only
   `plugins/memory/honcho/session.py`.
+- This target is byte-identical to the `v2026.8.19` target. Replaying the guard
+  changes without fuzz and regenerating the diff produces the same patched
+  target SHA256; the exact package-version gate now requires `0.21.0`.
+- Real upstream installation tests cover repeated install/rollback, reinstall
+  from a retained backup, corrupt-backup rejection, and rejection of `0.20.5`
+  even though that older release has identical target bytes.
 - The installer uses POSIX `patch` when available and a checked `git apply`
   fallback otherwise. Both paths verify the exact patched output before the
   target backup or replacement is created.
@@ -22,7 +28,7 @@ Audit date: 2026-08-26 (Asia/Singapore).
   permissions and are revalidated at runtime before entering message metadata.
   Alias values are then transmitted to the configured Honcho backend as part of
   that metadata; the setup wizard requires explicit opt-in after disclosure.
-- Alias profiles in `v0.2.0` are single-user only. The wizard refuses to create
+- Alias profiles in `v0.3.0` are single-user only. The wizard refuses to create
   one unless the operator confirms the Hermes instance has one human user.
 - `scripts/check.sh` independently downloads the public upstream files or reads
   an explicitly supplied immutable-tag checkout, then rechecks target, license,

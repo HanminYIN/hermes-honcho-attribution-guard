@@ -31,7 +31,7 @@ required_files=(
   AGENTS.md
   assets/readme-hero.svg
   compatibility.json
-  patches/hermes-2026.8.19.patch
+  patches/hermes-2026.8.31.patch
   honcho-guard
   scripts/build-release.sh
   scripts/check.sh
@@ -154,6 +154,8 @@ fi
 
 [[ "$(sha256_file "$baseline_file")" == "$PRISTINE_SHA256" ]] || die "official target SHA256 mismatch"
 [[ "$(sha256_file "$official_license")" == "$expected_license_sha" ]] || die "official LICENSE SHA256 mismatch"
+expected_pyproject_sha="$(json_get "$COMPATIBILITY_FILE" upstream pyproject_sha256)"
+[[ "$(sha256_file "$official_pyproject")" == "$expected_pyproject_sha" ]] || die "official pyproject.toml SHA256 mismatch"
 
 official_version="$(python3 - "$official_pyproject" <<'PY'
 import re
