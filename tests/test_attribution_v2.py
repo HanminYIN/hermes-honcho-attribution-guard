@@ -348,8 +348,8 @@ class InstallerSafetyTests(unittest.TestCase):
             "schema_version": 1,
             "package": {"name": "test-package", "version": "test-version"},
             "upstream": {
-                "release_tag": "v2026.8.19",
-                "python_package": {"version": "0.20.5"},
+                "release_tag": "v2026.8.31",
+                "python_package": {"version": "0.21.0"},
             },
             "target": {
                 "path": self.target_rel.as_posix(),
@@ -365,7 +365,7 @@ class InstallerSafetyTests(unittest.TestCase):
         (self.package / "compatibility.json").write_text(
             json.dumps(self.compatibility), encoding="utf-8"
         )
-        self.write_hermes(version="0.20.5", content=self.pristine)
+        self.write_hermes(version="0.21.0", content=self.pristine)
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()
@@ -404,7 +404,7 @@ class InstallerSafetyTests(unittest.TestCase):
         )
 
     def test_incompatible_hash_is_rejected_without_backup(self) -> None:
-        self.write_hermes(version="0.20.5", content=b"local modification\n")
+        self.write_hermes(version="0.21.0", content=b"local modification\n")
         result = self.run_script("install.sh")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(
@@ -415,7 +415,7 @@ class InstallerSafetyTests(unittest.TestCase):
         )
 
     def test_patched_target_without_verified_backup_is_rejected(self) -> None:
-        self.write_hermes(version="0.20.5", content=self.patched)
+        self.write_hermes(version="0.21.0", content=self.patched)
         result = self.run_script("install.sh")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual((self.hermes / self.target_rel).read_bytes(), self.patched)
@@ -441,7 +441,7 @@ class InstallerSafetyTests(unittest.TestCase):
 
         backup = (
             self.hermes
-            / ".hermes-honcho-attribution-guard/backups/v2026.8.19"
+            / ".hermes-honcho-attribution-guard/backups/v2026.8.31"
             / self.target_rel
         )
         self.assertEqual(backup.read_bytes(), self.pristine)
@@ -480,6 +480,68 @@ class InstallerSafetyTests(unittest.TestCase):
         result = self.run_script("install.sh", env={"PATH": str(tool_dir)})
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual((self.hermes / self.target_rel).read_bytes(), self.patched)
+
+
+class UpstreamInstallerTests(unittest.TestCase):
+    """Exercise the actual package against the hash-verified tagged source."""
+
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        self.hermes = Path(self.tempdir.name)
+        self.target = self.hermes / COMPATIBILITY["target"]["path"]
+        self.target.parent.mkdir(parents=True)
+        self.target.write_bytes(load_baseline())
+        self.write_version(COMPATIBILITY["upstream"]["python_package"]["version"])
+        self.backup = (
+            self.hermes / ".hermes-honcho-attribution-guard/backups"
+            / COMPATIBILITY["upstream"]["release_tag"]
+            / COMPATIBILITY["target"]["path"]
+        )
+
+    def write_version(self, version: str) -> None:
+        (self.hermes / "pyproject.toml").write_text(
+            f'[project]\nname = "hermes-agent"\nversion = "{version}"\n',
+            encoding="utf-8",
+        )
+
+    def run_guard(self, command: str, *, succeeds: bool = True):
+        result = subprocess.run(
+            [BASH, str(PROJECT_ROOT / "honcho-guard"), command, str(self.hermes)],
+            capture_output=True,
+            text=True,
+            env={**os.environ, "LC_ALL": "C"},
+        )
+        self.assertEqual(result.returncode == 0, succeeds, result.stdout + result.stderr)
+        return result
+
+    def test_exact_upstream_install_rollback_and_reinstall(self) -> None:
+        for _ in range(2):
+            self.run_guard("install")
+            self.assertEqual(sha256_file(self.target), COMPATIBILITY["target"]["patched_sha256"])
+            self.assertEqual(sha256_file(self.backup), COMPATIBILITY["target"]["pristine_sha256"])
+            self.assertIn("already installed", self.run_guard("install").stdout)
+            self.assertIn("installed", self.run_guard("status").stdout)
+            self.run_guard("rollback")
+            self.assertEqual(sha256_file(self.target), COMPATIBILITY["target"]["pristine_sha256"])
+            self.assertIn("already rolled back", self.run_guard("rollback").stdout)
+
+    def test_previous_release_rejected_even_with_identical_target(self) -> None:
+        # v2026.8.19 has the same session.py bytes but a different package version.
+        self.write_version("0.20.5")
+        for command in ("status", "install", "rollback"):
+            with self.subTest(command=command):
+                self.run_guard(command, succeeds=False)
+                self.assertEqual(sha256_file(self.target), COMPATIBILITY["target"]["pristine_sha256"])
+                self.assertFalse(self.backup.exists())
+
+    def test_corrupt_backup_blocks_install_and_rollback(self) -> None:
+        self.run_guard("install")
+        self.backup.write_text("example-invalid-backup\n", encoding="utf-8")
+        for command in ("status", "install", "rollback"):
+            with self.subTest(command=command):
+                self.run_guard(command, succeeds=False)
+                self.assertEqual(sha256_file(self.target), COMPATIBILITY["target"]["patched_sha256"])
 
 
 class IdentityProfileToolTests(unittest.TestCase):
