@@ -35,12 +35,16 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: NousResearch/hermes-agent
-          ref: 29112bef099274229cadff79cdff7bf7b99c4b77
+          ref: 2237be355906fbe6065ce1815711eee52b2d646e
           path: upstream
           sparse-checkout: |
             LICENSE
             pyproject.toml
             plugins/memory/honcho/session.py
+            plugins/memory/honcho/session_auth.py
+            plugins/memory/honcho/session_context.py
+            plugins/memory/honcho/session_migration.py
+            plugins/memory/honcho/session_peers.py
           sparse-checkout-cone-mode: false
           persist-credentials: false
 
@@ -66,15 +70,15 @@ jobs:
           )
 
           extract_root="$(mktemp -d)"
-          tar -xzf dist/hermes-honcho-attribution-guard-v0.3.0.tar.gz \
+          tar -xzf dist/hermes-honcho-attribution-guard-v0.4.0.tar.gz \
             -C "$extract_root"
           (
-            cd "$extract_root/hermes-honcho-attribution-guard-v0.3.0"
+            cd "$extract_root/hermes-honcho-attribution-guard-v0.4.0"
             sha256sum --check MANIFEST.sha256
           )
 
           rebuilt_root="$(mktemp -d)"
           HAG_RELEASE_DIR="$rebuilt_root" ./scripts/build-release.sh
           cmp \
-            dist/hermes-honcho-attribution-guard-v0.3.0.tar.gz \
-            "$rebuilt_root/hermes-honcho-attribution-guard-v0.3.0.tar.gz"
+            dist/hermes-honcho-attribution-guard-v0.4.0.tar.gz \
+            "$rebuilt_root/hermes-honcho-attribution-guard-v0.4.0.tar.gz"

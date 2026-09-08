@@ -1,4 +1,4 @@
-# hermes-honcho-attribution-guard v0.3.0
+# hermes-honcho-attribution-guard v0.4.0
 
 <p align="right">
   <strong>简体中文</strong> · <a href="./RELEASE_NOTES.en.md">English</a>
@@ -6,12 +6,14 @@
 
 > Safer identity attribution for Hermes Agent's built-in Honcho memory provider.
 
-## v0.3.0 更新
+## v0.4.0 更新
 
-- 重新基于官方 Hermes `v2026.8.31` / `hermes-agent 0.21.0` 的干净标签源码生成补丁；
-- 确认新标签的 Honcho session 与 `v2026.8.19` 字节一致，归属和检索行为保持不变；
-- 增加官方 `pyproject.toml` SHA256 核验，以及真实上游目标的安装、回滚、重新安装、
-  损坏备份拒绝和旧版本拒绝测试；即使目标文件相同，也拒绝旧版 `0.20.5`；
+- 重新基于官方 Hermes `v2026.9.7` / `hermes-agent 0.21.1` 的干净标签源码生成补丁；
+- 适配上游 session 模块拆分：通过调用原有检索方法并过滤返回的派生记忆，继续保留
+  身份归属、临时记忆过滤和完全重复项过滤；补丁仍只修改 `session.py`；
+- 固定并核验四个上游辅助模块的 SHA256；状态、安装和回滚均拒绝缺失、修改或符号链接；
+- 使用真实上游模块补测普通检索、当前查询模式、认证失败传播及原始消息保留，继续验证
+  安装/回滚幂等和旧版 `0.21.0` 拒绝；
 - 保持 `honcho-ai==2.2.0` 的消息级 metadata 与推理配置契约；
 - 安装器继续在没有 POSIX `patch` 时使用经过 `--check` 的 `git apply` 回退，最终产物仍需
   精确匹配记录的补丁后 SHA256；
@@ -46,15 +48,15 @@ peer ID、消息作者与第一/第二人称映射始终具有更高优先级。
 
 本 Release 提供两个下载文件：
 
-- `hermes-honcho-attribution-guard-v0.3.0.tar.gz`：完整补丁工具包；
+- `hermes-honcho-attribution-guard-v0.4.0.tar.gz`：完整补丁工具包；
 - `SHA256SUMS`：压缩包校验和。
 
 下载后先校验并解压；压缩包内的 `MANIFEST.sha256` 可以继续核验每一个文件：
 
 ```bash
 shasum -a 256 -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.3.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.3.0
+tar -xzf hermes-honcho-attribution-guard-v0.4.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.4.0
 shasum -a 256 -c MANIFEST.sha256
 ```
 
@@ -83,15 +85,15 @@ Linux 用户可以使用 `sha256sum -c`。校验通过后，普通用户只需�
 映射，称呼值会作为结构化消息 metadata 发送到用户已配置的 Honcho 后端；向导会在
 采集前明确告知并再次取得同意。
 
-`v0.3.0` 的可选称呼档案仅面向单用户 Hermes 实例；多用户网关应跳过称呼配置，
+`v0.4.0` 的可选称呼档案仅面向单用户 Hermes 实例；多用户网关应跳过称呼配置，
 继续使用不依赖别名的核心 attribution 功能。
 
 ## 兼容范围
 
-- Hermes release：`v2026.8.31`
-- `hermes-agent`：`0.21.0`
+- Hermes release：`v2026.9.7`
+- `hermes-agent`：`0.21.1`
 - Honcho SDK：`honcho-ai==2.2.0`
-- 补丁包版本：`0.3.0`
+- 补丁包版本：`0.4.0`
 
 兼容范围采用精确版本与 SHA256 校验，不会对相似版本模糊应用补丁。
 

@@ -31,7 +31,7 @@ required_files=(
   AGENTS.md
   assets/readme-hero.svg
   compatibility.json
-  patches/hermes-2026.8.31.patch
+  patches/hermes-2026.9.7.patch
   honcho-guard
   scripts/build-release.sh
   scripts/check.sh
@@ -171,6 +171,22 @@ PY
 )"
 expected_sdk="$(json_get "$COMPATIBILITY_FILE" honcho_sdk version)"
 [[ "$official_version" == "$HERMES_VERSION|$expected_sdk" ]] || die "official version metadata mismatch"
+
+supporting_source_root="${HERMES_UPSTREAM_ROOT:-$official_root}"
+supporting_source_root="$(cd -- "$supporting_source_root" && pwd -P)"
+if [[ -z "${HERMES_UPSTREAM_ROOT:-}" ]]; then
+  upstream_commit="$(json_get "$COMPATIBILITY_FILE" upstream commit)"
+  supporting_rows="$(supporting_source_rows)"
+  while read -r expected relative; do
+    [[ -n "$expected" ]] || continue
+    mkdir -p -- "$(dirname -- "$supporting_source_root/$relative")"
+    curl -L --fail --silent --show-error \
+      -o "$supporting_source_root/$relative" \
+      "https://raw.githubusercontent.com/NousResearch/hermes-agent/$upstream_commit/$relative"
+  done <<< "$supporting_rows"
+fi
+verify_supporting_sources "$supporting_source_root"
+export HERMES_SUPPORT_ROOT="$supporting_source_root"
 
 patched_root="$stage_root/patched"
 patched_target="$patched_root/$TARGET_REL"
