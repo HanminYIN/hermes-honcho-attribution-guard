@@ -89,6 +89,37 @@ print(value)
 PY
 }
 
+supporting_source_rows() {
+  python3 - "$COMPATIBILITY_FILE" <<'PY'
+import json
+import re
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    files = json.load(handle)["upstream"].get("supporting_files", {})
+if not isinstance(files, dict):
+    raise SystemExit("invalid supporting source manifest")
+for path, digest in files.items():
+    if (not re.fullmatch(r"[A-Za-z0-9._/-]+", path)
+            or path.startswith("/") or ".." in path
+            or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)):
+        raise SystemExit("invalid supporting source path or SHA256")
+    print(digest, path)
+PY
+}
+
+verify_supporting_sources() {
+  local root=$1 rows expected relative file
+  rows="$(supporting_source_rows)"
+  while read -r expected relative; do
+    [[ -n "$expected" ]] || continue
+    file="$root/$relative"
+    reject_symlink_components "$root" "$file" "supporting source"
+    [[ -f "$file" && ! -L "$file" ]] || die "missing or unsafe supporting source: $relative"
+    [[ "$(sha256_file "$file")" == "$expected" ]] || die "supporting source SHA256 mismatch: $relative"
+  done <<< "$rows"
+}
+
 load_compatibility() {
   require_command python3
   [[ -f "$COMPATIBILITY_FILE" ]] || die "compatibility file not found: $COMPATIBILITY_FILE"
@@ -133,6 +164,7 @@ resolve_hermes_root() {
   reject_symlink_components "$HERMES_ROOT" "$BACKUP_FILE" "backup path"
   [[ -f "$PYPROJECT_FILE" && ! -L "$PYPROJECT_FILE" ]] || die "missing or unsafe pyproject.toml"
   [[ -f "$TARGET_FILE" && ! -L "$TARGET_FILE" ]] || die "missing or unsafe target: $TARGET_REL"
+  verify_supporting_sources "$HERMES_ROOT"
 }
 
 read_hermes_version() {

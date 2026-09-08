@@ -1,4 +1,4 @@
-# hermes-honcho-attribution-guard v0.3.0
+# hermes-honcho-attribution-guard v0.4.0
 
 <p align="right">
   <a href="./RELEASE_NOTES.md">简体中文</a> · <strong>English</strong>
@@ -6,15 +6,18 @@
 
 > Safer identity attribution for Hermes Agent's built-in Honcho memory provider.
 
-## Changes in v0.3.0
+## Changes in v0.4.0
 
-- Rebuilt the patch from the pristine official Hermes `v2026.8.31` /
-  `hermes-agent 0.21.0` tag.
-- Confirmed that the tagged Honcho session is byte-identical to `v2026.8.19`;
-  attribution and retrieval behavior are unchanged.
-- Added SHA256 verification of the official `pyproject.toml` and real upstream
-  install, rollback, reinstall, corrupt-backup rejection, and previous-version
-  rejection tests. Package `0.20.5` is rejected even with identical target bytes.
+- Rebuilt the patch from the pristine official Hermes `v2026.9.7` /
+  `hermes-agent 0.21.1` tag.
+- Adapted to upstream's session-module split by delegating retrieval to the
+  existing methods and filtering returned derived memory. Attribution, transient
+  filtering, and exact-duplicate filtering remain confined to `session.py`.
+- Pinned four supporting upstream modules by SHA256. Status, install, and rollback
+  reject missing, modified, or symlinked supporting files.
+- Added real-upstream tests for ordinary retrieval, current-query-only mode,
+  authentication error propagation, and raw-message preservation; retained
+  install/rollback idempotency and rejection of package `0.21.0`.
 - Preserved the `honcho-ai==2.2.0` message-level metadata and reasoning
   configuration contract.
 - Retained the checked `git apply` fallback when POSIX `patch` is unavailable; the
@@ -58,15 +61,15 @@ memory provider and not a Hermes fork. It patches only
 
 This release provides two downloadable assets:
 
-- `hermes-honcho-attribution-guard-v0.3.0.tar.gz` — the complete patch package;
+- `hermes-honcho-attribution-guard-v0.4.0.tar.gz` — the complete patch package;
 - `SHA256SUMS` — the archive checksum.
 
 Verify the download, extract it, and verify the inner file manifest:
 
 ```bash
 shasum -a 256 -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.3.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.3.0
+tar -xzf hermes-honcho-attribution-guard-v0.4.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.4.0
 shasum -a 256 -c MANIFEST.sha256
 ```
 
@@ -97,16 +100,16 @@ is kept inside the Hermes checkout with file mode `0600`. Alias values are sent
 as structured message metadata to the user's configured Honcho backend; the
 wizard discloses this and asks for explicit consent before collection.
 
-The `v0.3.0` alias profile is intended only for a single-user Hermes instance.
+The `v0.4.0` alias profile is intended only for a single-user Hermes instance.
 Multi-user gateways should skip it and continue using core attribution without
 aliases.
 
 ## Compatibility
 
-- Hermes release: `v2026.8.31`
-- `hermes-agent`: `0.21.0`
+- Hermes release: `v2026.9.7`
+- `hermes-agent`: `0.21.1`
 - Honcho SDK: `honcho-ai==2.2.0`
-- Guard package: `0.3.0`
+- Guard package: `0.4.0`
 
 Compatibility is enforced with exact versions and SHA256 values. The patch is
 never fuzzily applied to a similar release.

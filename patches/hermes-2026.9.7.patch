@@ -1,17 +1,25 @@
 --- a/plugins/memory/honcho/session.py
 +++ b/plugins/memory/honcho/session.py
-@@ -3,6 +3,7 @@
+@@ -2,12 +2,15 @@
+ 
  from __future__ import annotations
  
- import hashlib
 +import json
++import re
  import queue
- import re
  import logging
-@@ -24,6 +25,128 @@
+ import threading
+ import time
+ from dataclasses import dataclass, field
+ from datetime import datetime
++from pathlib import Path
+ from typing import Any, TYPE_CHECKING
+ 
+ from plugins.memory.honcho.client import get_honcho_client, spawn_context_thread
+@@ -23,6 +26,129 @@
+ 
+ # Sentinel to signal the async writer thread to shut down
  _ASYNC_SHUTDOWN = object()
- _PEER_ID_HASH_LEN = 8
- _PEER_ID_HASH_ESCALATION_LENGTHS = (_PEER_ID_HASH_LEN, 12, 16, 24, 32, 64)
 +_HONCHO_ATTRIBUTION_VERSION = 2
 +_HONCHO_IDENTITY_PROFILE_VERSION = 1
 +_HONCHO_IDENTITY_PROFILE_RELATIVE_PATH = (
@@ -134,18 +142,19 @@
 +        logger.warning("Ignoring Honcho identity profile with cross-peer alias conflicts")
 +        return empty
 +    return result
++
  
  
- class HonchoAuthError(RuntimeError):
-@@ -147,6 +270,7 @@
+ @dataclass
+@@ -58,6 +184,7 @@
+         self._honcho = honcho
+         self._context_tokens = context_tokens
          self._config = config
++        self._identity_aliases = _load_honcho_identity_aliases()
          self._runtime_user_peer_name = runtime_user_peer_name
          self._runtime_user_peer_name_alt = runtime_user_peer_name_alt
-+        self._identity_aliases = _load_honcho_identity_aliases()
          self._cache: dict[str, HonchoSession] = {}
-         self._cache_lock = threading.RLock()
-         self._peers_cache: dict[str, Any] = {}
-@@ -657,6 +781,121 @@
+@@ -243,6 +370,152 @@
              self._cache[key] = session
          return session
  
@@ -264,78 +273,54 @@
 +            filtered.append(value)
 +        return filtered
 +
++    @classmethod
++    def _filter_honcho_context(cls, context: dict[str, Any]) -> dict[str, Any]:
++        """Filter derived memory fields while preserving raw messages and result shapes."""
++        result = dict(context)
++        for key in ("summary", "representation", "card", "ai_representation", "ai_card"):
++            value = result.get(key)
++            if isinstance(value, str):
++                result[key] = cls._filter_honcho_memory_text(value)
++            elif isinstance(value, list):
++                result[key] = cls._filter_honcho_memory_items(value)
++        return result
++
++    def _fetch_peer_context(
++        self, peer_id: str, search_query: str | None = None, *, target: str | None = None,
++    ) -> dict[str, Any]:
++        return self._filter_honcho_context(
++            super()._fetch_peer_context(peer_id, search_query, target=target)
++        )
++
++    def get_prefetch_context(
++        self, session_key: str, user_message: str | None = None, *, current_query_only: bool = False,
++    ) -> dict[str, str]:
++        return self._filter_honcho_context(
++            super().get_prefetch_context(
++                session_key, user_message, current_query_only=current_query_only
++            )
++        )
++
++    def get_session_context(self, session_key: str, peer: str = "user") -> dict[str, Any]:
++        return self._filter_honcho_context(super().get_session_context(session_key, peer))
++
+     # ----- Writes -----
+ 
      def _flush_session(self, session: HonchoSession) -> bool:
-         """Internal: write unsynced messages to Honcho synchronously."""
-         if not session.messages:
-@@ -675,10 +914,21 @@
-                 honcho_session, _ = self._get_or_create_honcho_session(
-                     session.honcho_session_id, user_peer, assistant_peer
-                 )
--            honcho_messages = [
--                (user_peer if m["role"] == "user" else assistant_peer).message(m["content"])
--                for m in new_messages
--            ]
+@@ -258,7 +531,15 @@
+             honcho_session = self._sessions_cache.get(session.honcho_session_id)
+             if honcho_session is None:
+                 honcho_session, _ = self._get_or_create_honcho_session(session.honcho_session_id, user_peer, assistant_peer)
+-            honcho_messages = [(user_peer if m["role"] == "user" else assistant_peer).message(m["content"]) for m in new_messages]
 +            honcho_messages = []
 +            for message in new_messages:
 +                peer = user_peer if message["role"] == "user" else assistant_peer
 +                content, metadata, configuration = self._format_honcho_content(
-+                    session,
-+                    message["role"],
-+                    message["content"],
++                    session, message["role"], message["content"]
 +                )
 +                honcho_messages.append(
-+                    peer.message(
-+                        content,
-+                        metadata=metadata,
-+                        configuration=configuration,
-+                    )
++                    peer.message(content, metadata=metadata, configuration=configuration)
 +                )
              honcho_session.add_messages(honcho_messages)
              return len(honcho_messages)
  
-@@ -1019,7 +1269,9 @@
-                     lambda: self._sdk_session(session.honcho_session_id).context(summary=True),
-                 )
-                 if ctx.summary and getattr(ctx.summary, "content", None):
--                    result["summary"] = ctx.summary.content
-+                    result["summary"] = self._filter_honcho_memory_text(
-+                        ctx.summary.content
-+                    )
-         except HonchoAuthError:
-             # Auth is dead; the pop_auth_notice path tells the model why context is missing.
-             return result
-@@ -1342,7 +1594,10 @@
-             except Exception as e:
-                 logger.debug("Direct peer card fetch failed for '%s': %s", peer_id, e)
- 
--        return {"representation": representation, "card": card}
-+        return {
-+            "representation": self._filter_honcho_memory_text(representation),
-+            "card": self._filter_honcho_memory_items(card),
-+        }
- 
-     def get_session_context(self, session_key: str, peer: str = "user") -> dict[str, Any]:
-         """Fetch full session context from Honcho including summary.
-@@ -1377,13 +1632,19 @@
- 
-             # Summary
-             if ctx.summary:
--                result["summary"] = ctx.summary.content
-+                result["summary"] = self._filter_honcho_memory_text(
-+                    ctx.summary.content
-+                )
- 
-             # Peer representation and card
-             if ctx.peer_representation:
--                result["representation"] = ctx.peer_representation
-+                result["representation"] = self._filter_honcho_memory_text(
-+                    ctx.peer_representation
-+                )
-             if ctx.peer_card:
--                result["card"] = "\n".join(ctx.peer_card)
-+                result["card"] = "\n".join(
-+                    self._filter_honcho_memory_items(self._normalize_card(ctx.peer_card))
-+                )
- 
-             # Messages (last N for context)
-             if ctx.messages:

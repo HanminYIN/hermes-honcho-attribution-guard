@@ -74,7 +74,8 @@ from a similar version:
 1. Fetch the target, `LICENSE`, and version metadata from the official tag.
 2. Record the tag commit, Hermes package version, and Honcho SDK version.
 3. Record SHA256 values for the pristine target, upstream license, and
-   `pyproject.toml` version metadata.
+   `pyproject.toml` version metadata. Pin extracted upstream dependencies in
+   `upstream.supporting_files` and load the real modules in tests.
 4. Regenerate the patch from the pristine target; never reuse a fuzzy patch.
 5. Verify that release's Honcho SDK message-metadata and reasoning-configuration
    contract.

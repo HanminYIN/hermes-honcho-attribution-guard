@@ -66,7 +66,8 @@ command -v python3 patch curl rg
 
 1. 从官方 tag 获取目标文件、`LICENSE` 与版本元数据；
 2. 记录 tag 对应 commit、Hermes package 版本和 Honcho SDK 版本；
-3. 记录原始目标文件、许可证与 `pyproject.toml` 版本元数据的 SHA256；
+3. 记录原始目标文件、许可证与 `pyproject.toml` 版本元数据的 SHA256；目标若依赖拆分出的
+   上游模块，也须在 `upstream.supporting_files` 中固定哈希，并在测试中加载真实模块；
 4. 从干净的原始目标重新生成 patch，不复用 fuzzy patch；
 5. 核验该版本 Honcho SDK 的 message metadata 与 reasoning configuration 合同；
 6. 更新 `compatibility.json`、安装/回滚门禁和版本拒绝测试；

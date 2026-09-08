@@ -12,6 +12,7 @@ must protect reporters, deployments, and user data.
 
 | Guard version | Hermes release | Security support |
 | --- | --- | --- |
+| `0.4.0` | `v2026.9.7` / package `0.21.1` | Supported |
 | `0.3.0` | `v2026.8.31` / package `0.21.0` | Supported |
 | `0.2.0` | `v2026.8.19` / package `0.20.5` | Supported |
 | `0.1.0` | `v2026.8.3` / package `0.20.0` | Supported |

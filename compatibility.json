@@ -2,20 +2,26 @@
   "schema_version": 1,
   "package": {
     "name": "hermes-honcho-attribution-guard",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "upstream": {
     "repository": "https://github.com/NousResearch/hermes-agent",
-    "release_tag": "v2026.8.31",
-    "release_name": "Hermes Agent v0.21.0 (v2026.8.31)",
-    "commit": "29112bef099274229cadff79cdff7bf7b99c4b77",
+    "release_tag": "v2026.9.7",
+    "release_name": "Hermes Agent v0.21.1 (v2026.9.7)",
+    "commit": "2237be355906fbe6065ce1815711eee52b2d646e",
     "python_package": {
       "name": "hermes-agent",
-      "version": "0.21.0"
+      "version": "0.21.1"
     },
     "license": "MIT",
     "license_sha256": "821556e6336796450ab852d375117b48a4887e71d255794fd6318d99982a5ab6",
-    "pyproject_sha256": "c70c8b52f6cc08a4e65f0fc1713c26814fd4f19811bc7e01de645009b2a76600"
+    "pyproject_sha256": "1f0d8d7e9e19c3a1cc25521a5cf56f3c885e4604d3081246cd42d9924a983174",
+    "supporting_files": {
+      "plugins/memory/honcho/session_auth.py": "a8ef2df90136856bab054fd1ece51db7c83bfd33f0c5b344af2b33fdb1c73d14",
+      "plugins/memory/honcho/session_context.py": "06c288e57a81a70c3d86553be22793687096135ca20df3452deaf3a8828b810a",
+      "plugins/memory/honcho/session_migration.py": "3bb82c2305ee9eaf3d016ad67f047462f8cbc436f3e56b30adeaf4f12dd532f1",
+      "plugins/memory/honcho/session_peers.py": "94dbbe82e87bf1105ca75ce0f0403516bcdd3e4c4069ea45feb37d11d56d3831"
+    }
   },
   "honcho_sdk": {
     "distribution": "honcho-ai",
@@ -23,12 +29,12 @@
   },
   "target": {
     "path": "plugins/memory/honcho/session.py",
-    "pristine_sha256": "0feada7c6db22376d5dea5bcf9afc9573612f791892294288495d979a1afa7d4",
-    "patched_sha256": "fdb1f7ee13b48aa0b2fb6ea187984801e256a046b8811a3a4e7b05f535795762"
+    "pristine_sha256": "db85fc80f6035735fa76978313f299e0375fa5c886e95914acb11227ed33e43f",
+    "patched_sha256": "9e50c7fa4c49d2a545e639fda98720a8b38bfe7a37ebca684b157fd53ada08c8"
   },
   "patch": {
-    "path": "patches/hermes-2026.8.31.patch",
+    "path": "patches/hermes-2026.9.7.patch",
     "strip": 1,
-    "sha256": "1fdf09c259b51f97adf1ba95a55523b8e0393cc572c42ee78181299a3e735941"
+    "sha256": "442f27465796237dca8d95282a62f4aa371331ea07f2581862a3621287261a60"
   }
 }

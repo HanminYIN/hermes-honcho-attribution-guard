@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import functools
 import importlib.util
 import json
 import os
@@ -36,6 +37,7 @@ def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
 
 
+@functools.lru_cache(maxsize=1)
 def load_baseline() -> bytes:
     configured = os.environ.get("HERMES_BASELINE_FILE")
     if configured:
@@ -49,10 +51,36 @@ def load_baseline() -> bytes:
     return data
 
 
+@functools.lru_cache(maxsize=1)
+def load_supporting_sources() -> dict[str, bytes]:
+    sources = {}
+    configured = os.environ.get("HERMES_SUPPORT_ROOT") or os.environ.get("HERMES_UPSTREAM_ROOT")
+    commit = COMPATIBILITY["upstream"]["commit"]
+    for relative, expected in COMPATIBILITY["upstream"]["supporting_files"].items():
+        if configured:
+            data = (Path(configured) / relative).read_bytes()
+        else:
+            url = f"https://raw.githubusercontent.com/NousResearch/hermes-agent/{commit}/{relative}"
+            with urllib.request.urlopen(url, timeout=30) as response:
+                data = response.read()
+        if sha256_bytes(data) != expected:
+            raise AssertionError(f"supporting source SHA256 mismatch: {relative}")
+        sources[relative] = data
+    return sources
+
+
+def write_supporting_sources(root: Path) -> None:
+    for relative, data in load_supporting_sources().items():
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+
+
 def patch_baseline(baseline: bytes, root: Path) -> Path:
     target = root / COMPATIBILITY["target"]["path"]
     target.parent.mkdir(parents=True)
     target.write_bytes(baseline)
+    write_supporting_sources(root)
     subprocess.run(
         [
             "patch",
@@ -78,6 +106,9 @@ def import_patched_session(path: Path):
         module = types.ModuleType(name)
         module.__path__ = []
         sys.modules[name] = module
+    sys.modules["plugins.memory.honcho"].__path__ = [str(path.parent)]
+    for relative in COMPATIBILITY["upstream"]["supporting_files"]:
+        sys.modules.pop("plugins.memory.honcho." + Path(relative).stem, None)
 
     client_module = types.ModuleType("plugins.memory.honcho.client")
     client_module.get_honcho_client = lambda: None
@@ -322,6 +353,104 @@ class AttributionBehaviorTests(unittest.TestCase):
         self.assertEqual(filtered, ["User prefers tea.", "Stable fact."])
 
 
+class RetrievalIntegrationTests(unittest.TestCase):
+    """Run the unmodified, hash-verified upstream context mixin behind the guard."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.tempdir = tempfile.TemporaryDirectory()
+        cls.module = import_patched_session(patch_baseline(load_baseline(), Path(cls.tempdir.name)))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.tempdir.cleanup()
+
+    def setUp(self) -> None:
+        self.manager = self.module.HonchoSessionManager()
+        self.manager._authed_call = lambda _name, operation: operation()
+        self.session = self.module.HonchoSession(
+            key="example-channel:example-session", user_peer_id="example-user",
+            assistant_peer_id="example-assistant", honcho_session_id="example-session",
+        )
+        self.manager._cache[self.session.key] = self.session
+        self.text = "User prefers tea.\nuser prefers tea!\nUser is going to sleep."
+        self.card = ["User prefers tea.", "user prefers tea!", "Good night!"]
+        self.calls = []
+
+        def peer_context(**kwargs):
+            self.calls.append(("peer_context", kwargs))
+            return types.SimpleNamespace(representation=self.text, peer_card=self.card)
+
+        def session_context(**kwargs):
+            self.calls.append(("session_context", kwargs))
+            return types.SimpleNamespace(
+                summary=types.SimpleNamespace(content=self.text), peer_representation=self.text,
+                peer_card=self.card,
+                messages=[types.SimpleNamespace(peer_id="example-user", content="Good night!")],
+            )
+
+        self.peer = types.SimpleNamespace(context=peer_context)
+        self.manager._get_or_create_peer = lambda _peer_id: self.peer
+        self.manager._sessions_cache["example-session"] = types.SimpleNamespace(context=session_context)
+
+    def test_peer_context_and_fallback_preserve_scope_and_filter(self) -> None:
+        for fallback in (False, True):
+            with self.subTest(fallback=fallback):
+                if fallback:
+                    self.peer.context = lambda **kwargs: types.SimpleNamespace()
+                    self.peer.representation = lambda **kwargs: self.text
+                    self.peer.get_card = lambda **kwargs: self.card
+                result = self.manager._fetch_peer_context(
+                    "example-assistant", "example-query", target="example-user"
+                )
+                self.assertEqual(result, {"representation": "User prefers tea.", "card": ["User prefers tea."]})
+        self.assertIn(("peer_context", {"search_query": "example-query", "target": "example-user"}), self.calls)
+
+    def test_prefetch_filters_normal_and_current_query_only_paths(self) -> None:
+        for current_query_only in (False, True):
+            with self.subTest(current_query_only=current_query_only):
+                result = self.manager.get_prefetch_context(
+                    self.session.key, "example-query", current_query_only=current_query_only
+                )
+                self.assertEqual(set(result), {"summary", "representation", "card", "ai_representation", "ai_card"})
+                self.assertTrue(all(value == "User prefers tea." for value in result.values()))
+        self.assertIn(("peer_context", {"search_query": "example-query", "target": "example-user"}), self.calls)
+
+    def test_current_query_only_keeps_empty_results_without_generic_fallback(self) -> None:
+        def context(**kwargs):
+            self.calls.append(("peer_context", kwargs))
+            if kwargs.get("target") == "example-assistant":
+                return types.SimpleNamespace(representation="Example assistant fact.", peer_card=["Example assistant fact."])
+            return types.SimpleNamespace(representation="", peer_card=[])
+        self.peer.context = context
+        self.peer.representation = lambda **kwargs: self.fail("must not fall back to generic user recall")
+        self.peer.get_card = lambda **kwargs: self.fail("must not fall back to generic user card")
+        result = self.manager.get_prefetch_context(self.session.key, "example-query", current_query_only=True)
+        self.assertEqual(result["representation"], "")
+        self.assertEqual(result["card"], "")
+        self.assertEqual(self.calls.count(("peer_context", {"search_query": "example-query", "target": "example-user"})), 1)
+
+    def test_session_context_preserves_raw_messages_and_fallback_shape(self) -> None:
+        result = self.manager.get_session_context(self.session.key)
+        for key in ("summary", "representation", "card"):
+            self.assertEqual(result[key], "User prefers tea.")
+        self.assertEqual(result["recent_messages"], [{"role": "example-user", "content": "Good night!"}])
+        self.manager._sessions_cache.clear()
+        fallback = self.manager.get_session_context(self.session.key)
+        self.assertEqual(fallback["card"], ["User prefers tea."])
+        self.assertEqual(self.manager.get_session_context("example-missing-session"), {})
+
+    def test_upstream_auth_and_strict_query_errors_remain_visible(self) -> None:
+        def failed(**kwargs):
+            raise self.module.HonchoAuthError("example-auth-failure")
+        self.manager._sessions_cache["example-session"].context = failed
+        with self.assertRaises(self.module.HonchoAuthError):
+            self.manager.get_session_context(self.session.key)
+        with self.assertRaises(self.module.HonchoAuthError):
+            self.manager.get_prefetch_context(self.session.key, "example-query", current_query_only=True)
+        self.assertEqual(self.manager.get_prefetch_context(self.session.key), {})
+
+
 class InstallerSafetyTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
@@ -348,8 +477,8 @@ class InstallerSafetyTests(unittest.TestCase):
             "schema_version": 1,
             "package": {"name": "test-package", "version": "test-version"},
             "upstream": {
-                "release_tag": "v2026.8.31",
-                "python_package": {"version": "0.21.0"},
+                "release_tag": "v2026.9.7",
+                "python_package": {"version": "0.21.1"},
             },
             "target": {
                 "path": self.target_rel.as_posix(),
@@ -365,7 +494,7 @@ class InstallerSafetyTests(unittest.TestCase):
         (self.package / "compatibility.json").write_text(
             json.dumps(self.compatibility), encoding="utf-8"
         )
-        self.write_hermes(version="0.21.0", content=self.pristine)
+        self.write_hermes(version="0.21.1", content=self.pristine)
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()
@@ -404,7 +533,7 @@ class InstallerSafetyTests(unittest.TestCase):
         )
 
     def test_incompatible_hash_is_rejected_without_backup(self) -> None:
-        self.write_hermes(version="0.21.0", content=b"local modification\n")
+        self.write_hermes(version="0.21.1", content=b"local modification\n")
         result = self.run_script("install.sh")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(
@@ -415,7 +544,7 @@ class InstallerSafetyTests(unittest.TestCase):
         )
 
     def test_patched_target_without_verified_backup_is_rejected(self) -> None:
-        self.write_hermes(version="0.21.0", content=self.patched)
+        self.write_hermes(version="0.21.1", content=self.patched)
         result = self.run_script("install.sh")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual((self.hermes / self.target_rel).read_bytes(), self.patched)
@@ -441,7 +570,7 @@ class InstallerSafetyTests(unittest.TestCase):
 
         backup = (
             self.hermes
-            / ".hermes-honcho-attribution-guard/backups/v2026.8.31"
+            / ".hermes-honcho-attribution-guard/backups/v2026.9.7"
             / self.target_rel
         )
         self.assertEqual(backup.read_bytes(), self.pristine)
@@ -492,6 +621,7 @@ class UpstreamInstallerTests(unittest.TestCase):
         self.target = self.hermes / COMPATIBILITY["target"]["path"]
         self.target.parent.mkdir(parents=True)
         self.target.write_bytes(load_baseline())
+        write_supporting_sources(self.hermes)
         self.write_version(COMPATIBILITY["upstream"]["python_package"]["version"])
         self.backup = (
             self.hermes / ".hermes-honcho-attribution-guard/backups"
@@ -526,9 +656,9 @@ class UpstreamInstallerTests(unittest.TestCase):
             self.assertEqual(sha256_file(self.target), COMPATIBILITY["target"]["pristine_sha256"])
             self.assertIn("already rolled back", self.run_guard("rollback").stdout)
 
-    def test_previous_release_rejected_even_with_identical_target(self) -> None:
-        # v2026.8.19 has the same session.py bytes but a different package version.
-        self.write_version("0.20.5")
+    def test_previous_release_rejected_even_with_supported_target(self) -> None:
+        # A matching target must not bypass the exact package-version gate.
+        self.write_version("0.21.0")
         for command in ("status", "install", "rollback"):
             with self.subTest(command=command):
                 self.run_guard(command, succeeds=False)
@@ -542,6 +672,32 @@ class UpstreamInstallerTests(unittest.TestCase):
             with self.subTest(command=command):
                 self.run_guard(command, succeeds=False)
                 self.assertEqual(sha256_file(self.target), COMPATIBILITY["target"]["patched_sha256"])
+
+    def test_changed_supporting_source_blocks_all_operations(self) -> None:
+        self.run_guard("install")
+        relative = next(iter(COMPATIBILITY["upstream"]["supporting_files"]))
+        (self.hermes / relative).write_text("# example-local-modification\n", encoding="utf-8")
+        for command in ("status", "install", "rollback"):
+            with self.subTest(command=command):
+                result = self.run_guard(command, succeeds=False)
+                self.assertIn("supporting source SHA256 mismatch", result.stderr)
+                self.assertEqual(sha256_file(self.target), COMPATIBILITY["target"]["patched_sha256"])
+
+    def test_missing_or_symlinked_supporting_source_is_rejected(self) -> None:
+        relative = next(iter(COMPATIBILITY["upstream"]["supporting_files"]))
+        source = self.hermes / relative
+        data = source.read_bytes()
+        source.unlink()
+        for symlink in (False, True):
+            with self.subTest(symlink=symlink):
+                if symlink:
+                    outside = self.hermes / "example-source.py"
+                    outside.write_bytes(data)
+                    source.symlink_to(outside)
+                for command in ("status", "install", "rollback"):
+                    self.run_guard(command, succeeds=False)
+                    self.assertFalse(self.backup.exists())
+                    self.assertEqual(sha256_file(self.target), COMPATIBILITY["target"]["pristine_sha256"])
 
 
 class IdentityProfileToolTests(unittest.TestCase):
