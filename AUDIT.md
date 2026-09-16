@@ -1,13 +1,13 @@
 # Evidence and audit boundary
 
-Audit date: 2026-09-09 (Asia/Singapore).
+Audit date: 2026-09-17 (Asia/Singapore).
 
 ## Currently verified
 
-- The official GitHub release is `v2026.9.7`, named "Hermes Agent v0.21.1
-  (v2026.9.7)". Its annotated tag peels to commit
-  `2237be355906fbe6065ce1815711eee52b2d646e`.
-- The tagged `pyproject.toml` reports package version `0.21.1` and pins
+- The official GitHub release is `v2026.9.14`, named "Hermes Agent v0.21.3
+  (v2026.9.14)". Its annotated tag peels to commit
+  `345cd2b057a452236de401d3534b8502a7465e8d`.
+- The tagged `pyproject.toml` reports package version `0.21.3` and pins
   `honcho-ai==2.2.0`.
 - The tagged target file, MIT license, and `pyproject.toml` match the SHA256
   values recorded in `compatibility.json`.
@@ -15,6 +15,10 @@ Audit date: 2026-09-09 (Asia/Singapore).
   `configuration.reasoning.custom_instructions` in `Peer.message()`.
 - The patch is regenerated from the pristine tagged target and changes only
   `plugins/memory/honcho/session.py`.
+- Group writes carry upstream `author_peer_id` into attribution metadata and
+  pronoun ownership, matching the SDK peer selected for the message. Other
+  authors do not inherit the default user's alias hints. Upstream write locks,
+  retry bookkeeping, author membership, and message trimming remain unchanged.
 - Upstream split session auth, peer resolution, context retrieval, and migration
   into four mixins. The guard delegates retrieval to these unmodified modules
   and filters the returned derived-memory fields. Raw recent messages, observer
@@ -22,9 +26,12 @@ Audit date: 2026-09-09 (Asia/Singapore).
 - The four supporting modules are SHA256-pinned in `compatibility.json`, fetched
   from the peeled upstream commit, and used directly by behavioral tests. Status,
   install, and rollback reject missing, modified, or symlinked supporting files.
-- Real upstream installation tests cover repeated install/rollback, reinstall
-  from a retained backup, corrupt-backup rejection, and rejection of `0.21.0`
-  even when paired with the supported target bytes.
+- All 30 tests pass, including group-author retries without duplicate writes,
+  summary reasoning-text cleanup followed by memory filtering, repeated
+  install/rollback, reinstall from a retained backup, corrupt-backup rejection,
+  and rejection of `0.21.0`, `0.21.1`, and `0.21.2` even when paired with the
+  supported target bytes. The test harness stubs Hermes log redaction; it does
+  not verify that unrelated redaction implementation.
 - The installer uses POSIX `patch` when available and a checked `git apply`
   fallback otherwise. Both paths verify the exact patched output before the
   target backup or replacement is created.
@@ -32,7 +39,7 @@ Audit date: 2026-09-09 (Asia/Singapore).
   permissions and are revalidated at runtime before entering message metadata.
   Alias values are then transmitted to the configured Honcho backend as part of
   that metadata; the setup wizard requires explicit opt-in after disclosure.
-- Alias profiles in `v0.4.0` are single-user only. The wizard refuses to create
+- Alias profiles in `v0.5.0` are single-user only. The wizard refuses to create
   one unless the operator confirms the Hermes instance has one human user.
 - `scripts/check.sh` independently downloads the public upstream files or reads
   an explicitly supplied immutable-tag checkout, then rechecks target, license,

@@ -2,25 +2,25 @@
   "schema_version": 1,
   "package": {
     "name": "hermes-honcho-attribution-guard",
-    "version": "0.4.0"
+    "version": "0.5.0"
   },
   "upstream": {
     "repository": "https://github.com/NousResearch/hermes-agent",
-    "release_tag": "v2026.9.7",
-    "release_name": "Hermes Agent v0.21.1 (v2026.9.7)",
-    "commit": "2237be355906fbe6065ce1815711eee52b2d646e",
+    "release_tag": "v2026.9.14",
+    "release_name": "Hermes Agent v0.21.3 (v2026.9.14)",
+    "commit": "345cd2b057a452236de401d3534b8502a7465e8d",
     "python_package": {
       "name": "hermes-agent",
-      "version": "0.21.1"
+      "version": "0.21.3"
     },
     "license": "MIT",
     "license_sha256": "821556e6336796450ab852d375117b48a4887e71d255794fd6318d99982a5ab6",
-    "pyproject_sha256": "1f0d8d7e9e19c3a1cc25521a5cf56f3c885e4604d3081246cd42d9924a983174",
+    "pyproject_sha256": "a674c321c63c3bfd9fa099fab5957a64092416f7771680b370a4d77e992744ba",
     "supporting_files": {
-      "plugins/memory/honcho/session_auth.py": "a8ef2df90136856bab054fd1ece51db7c83bfd33f0c5b344af2b33fdb1c73d14",
-      "plugins/memory/honcho/session_context.py": "06c288e57a81a70c3d86553be22793687096135ca20df3452deaf3a8828b810a",
-      "plugins/memory/honcho/session_migration.py": "3bb82c2305ee9eaf3d016ad67f047462f8cbc436f3e56b30adeaf4f12dd532f1",
-      "plugins/memory/honcho/session_peers.py": "94dbbe82e87bf1105ca75ce0f0403516bcdd3e4c4069ea45feb37d11d56d3831"
+      "plugins/memory/honcho/session_auth.py": "7ecae03d5861e43edad54855a7d890a5d4e67f426486ada3100c34edb24c1d7a",
+      "plugins/memory/honcho/session_context.py": "0c25f85e804ad2299aba0db3e22c1aaa59c0392495886ab588b70e09f55c237c",
+      "plugins/memory/honcho/session_migration.py": "00b0d89decfb42d10fb63a69c888b5bfaa6019b92203ef74441c82de5a0fc5b2",
+      "plugins/memory/honcho/session_peers.py": "22095ea46e328e30207449d7db53f2b57b6cf8cfdf397d100f35a166dd3d9455"
     }
   },
   "honcho_sdk": {
@@ -29,12 +29,12 @@
   },
   "target": {
     "path": "plugins/memory/honcho/session.py",
-    "pristine_sha256": "db85fc80f6035735fa76978313f299e0375fa5c886e95914acb11227ed33e43f",
-    "patched_sha256": "9e50c7fa4c49d2a545e639fda98720a8b38bfe7a37ebca684b157fd53ada08c8"
+    "pristine_sha256": "d6cf68ef8d04fd67a8f60d1ef1dfa1accad4d15103d6ec0eb7490688667b22ee",
+    "patched_sha256": "90099085432825a190b3f893dd1fb7cba3d320f6ae10df825a1a91b6c002e482"
   },
   "patch": {
-    "path": "patches/hermes-2026.9.7.patch",
+    "path": "patches/hermes-2026.9.14.patch",
     "strip": 1,
-    "sha256": "442f27465796237dca8d95282a62f4aa371331ea07f2581862a3621287261a60"
+    "sha256": "601f54d1ab26d650a618b62aa1835f30390c420b588c93c341f750f9eebc7386"
   }
 }
