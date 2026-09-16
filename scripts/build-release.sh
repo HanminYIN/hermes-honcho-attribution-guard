@@ -37,7 +37,7 @@ release_files=(
   compatibility.json
   examples/attribution.example.yaml
   honcho-guard
-  patches/hermes-2026.9.7.patch
+  patches/hermes-2026.9.14.patch
   scripts/build-release.sh
   scripts/check.sh
   scripts/identity.py

@@ -119,6 +119,14 @@ def import_patched_session(path: Path):
     oauth_module.redact_tokens = str
     sys.modules[oauth_module.__name__] = oauth_module
 
+    # Log redaction belongs to Hermes, outside the attribution contract under test.
+    agent_module = types.ModuleType("agent")
+    agent_module.__path__ = []
+    sys.modules[agent_module.__name__] = agent_module
+    redact_module = types.ModuleType("agent.redact")
+    redact_module.redact_sensitive_text = str
+    sys.modules[redact_module.__name__] = redact_module
+
     module_name = "honcho_attribution_guard_test_session"
     spec = importlib.util.spec_from_file_location(module_name, path)
     if spec is None or spec.loader is None:
@@ -300,9 +308,7 @@ class AttributionBehaviorTests(unittest.TestCase):
             def add_messages(self, messages):
                 self.messages = messages
 
-        manager = self.module.HonchoSessionManager.__new__(
-            self.module.HonchoSessionManager
-        )
+        manager = self.module.HonchoSessionManager()
         peers = {
             "example-user": FakePeer("example-user"),
             "example-assistant": FakePeer("example-assistant"),
@@ -329,6 +335,69 @@ class AttributionBehaviorTests(unittest.TestCase):
             1,
         )
         self.assertTrue(session.messages[0]["_synced"])
+
+    def test_group_author_attribution_survives_retry_and_does_not_inherit_aliases(self) -> None:
+        manager = self.module.HonchoSessionManager()
+        manager._identity_aliases = {"user": ["Example Owner"], "assistant": ["Example Assistant"]}
+        sent, joined = [], []
+
+        class FakePeer:
+            def __init__(self, peer_id):
+                self.peer_id = peer_id
+
+            def message(self, content, **kwargs):
+                return {"peer_id": self.peer_id, "content": content, **kwargs}
+
+        class FakeRemoteSession:
+            fail = True
+
+            def add_peers(self, peers):
+                joined.extend(peer.peer_id for peer, _config in peers)
+
+            def add_messages(self, messages):
+                if self.fail:
+                    self.fail = False
+                    raise RuntimeError("example-temporary-write-failure")
+                sent.extend(messages)
+
+        # Model only the SDK configuration boundary; exercise upstream author joining.
+        sdk_module = types.ModuleType("honcho.session")
+        sdk_module.SessionPeerConfig = types.SimpleNamespace
+        previous = sys.modules.get(sdk_module.__name__)
+        sys.modules[sdk_module.__name__] = sdk_module
+        try:
+            peers = {name: FakePeer(name) for name in ("example-user", "example-assistant", "example-member")}
+            manager._get_or_create_peer = peers.__getitem__
+            manager._authed_call = lambda _name, operation: operation()
+            manager._sessions_cache["example-session"] = FakeRemoteSession()
+            session = self.module.HonchoSession(
+                key="example-group", user_peer_id="example-user", assistant_peer_id="example-assistant",
+                honcho_session_id="example-session", messages=[
+                    {"role": "user", "content": "Example owner statement."},
+                    {"role": "user", "content": "Example member statement.", "author_peer_id": "example-member"},
+                    {"role": "assistant", "content": "Example hypothesis."},
+                ],
+            )
+            with self.assertLogs(self.module.__name__, level="ERROR"):
+                self.assertFalse(manager._flush_session(session))
+            self.assertTrue(all(not message["_synced"] for message in session.messages))
+            self.assertTrue(manager._flush_session(session))
+            self.assertTrue(manager._flush_session(session))
+            self.assertEqual(joined, ["example-member"])
+            self.assertEqual(len(sent), 3)
+            self.assertTrue(all(message["_synced"] for message in session.messages))
+            for message in sent:
+                self.assertEqual(message["peer_id"], message["metadata"]["speaker_peer_id"])
+                self.assertEqual(message["peer_id"], message["metadata"]["pronoun_map"]["first_person"])
+            self.assertEqual(sent[0]["metadata"]["speaker_aliases"], ["Example Owner"])
+            self.assertEqual(sent[1]["metadata"]["speaker_aliases"], [])
+            self.assertEqual(sent[1]["metadata"]["addressee_peer_id"], "example-assistant")
+            self.assertEqual(sent[2]["metadata"]["speaker_role"], "assistant")
+        finally:
+            if previous is None:
+                sys.modules.pop(sdk_module.__name__, None)
+            else:
+                sys.modules[sdk_module.__name__] = previous
 
     def test_transient_and_duplicate_memory_is_filtered(self) -> None:
         source = "\n".join(
@@ -450,6 +519,18 @@ class RetrievalIntegrationTests(unittest.TestCase):
             self.manager.get_prefetch_context(self.session.key, "example-query", current_query_only=True)
         self.assertEqual(self.manager.get_prefetch_context(self.session.key), {})
 
+    def test_upstream_summary_reasoning_cleanup_precedes_memory_filter(self) -> None:
+        context = self.manager._sessions_cache["example-session"].context
+
+        def with_reasoning(**kwargs):
+            result = context(**kwargs)
+            result.summary.content = "Example planning text.</think>" + self.text
+            return result
+
+        self.manager._sessions_cache["example-session"].context = with_reasoning
+        for result in (self.manager.get_prefetch_context(self.session.key), self.manager.get_session_context(self.session.key)):
+            self.assertEqual(result["summary"], "User prefers tea.")
+
 
 class InstallerSafetyTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -477,8 +558,8 @@ class InstallerSafetyTests(unittest.TestCase):
             "schema_version": 1,
             "package": {"name": "test-package", "version": "test-version"},
             "upstream": {
-                "release_tag": "v2026.9.7",
-                "python_package": {"version": "0.21.1"},
+                "release_tag": "v2026.9.14",
+                "python_package": {"version": "0.21.3"},
             },
             "target": {
                 "path": self.target_rel.as_posix(),
@@ -494,7 +575,7 @@ class InstallerSafetyTests(unittest.TestCase):
         (self.package / "compatibility.json").write_text(
             json.dumps(self.compatibility), encoding="utf-8"
         )
-        self.write_hermes(version="0.21.1", content=self.pristine)
+        self.write_hermes(version="0.21.3", content=self.pristine)
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()
@@ -533,7 +614,7 @@ class InstallerSafetyTests(unittest.TestCase):
         )
 
     def test_incompatible_hash_is_rejected_without_backup(self) -> None:
-        self.write_hermes(version="0.21.1", content=b"local modification\n")
+        self.write_hermes(version="0.21.3", content=b"local modification\n")
         result = self.run_script("install.sh")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(
@@ -544,7 +625,7 @@ class InstallerSafetyTests(unittest.TestCase):
         )
 
     def test_patched_target_without_verified_backup_is_rejected(self) -> None:
-        self.write_hermes(version="0.21.1", content=self.patched)
+        self.write_hermes(version="0.21.3", content=self.patched)
         result = self.run_script("install.sh")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual((self.hermes / self.target_rel).read_bytes(), self.patched)
@@ -570,7 +651,7 @@ class InstallerSafetyTests(unittest.TestCase):
 
         backup = (
             self.hermes
-            / ".hermes-honcho-attribution-guard/backups/v2026.9.7"
+            / ".hermes-honcho-attribution-guard/backups/v2026.9.14"
             / self.target_rel
         )
         self.assertEqual(backup.read_bytes(), self.pristine)
@@ -658,12 +739,13 @@ class UpstreamInstallerTests(unittest.TestCase):
 
     def test_previous_release_rejected_even_with_supported_target(self) -> None:
         # A matching target must not bypass the exact package-version gate.
-        self.write_version("0.21.0")
-        for command in ("status", "install", "rollback"):
-            with self.subTest(command=command):
-                self.run_guard(command, succeeds=False)
-                self.assertEqual(sha256_file(self.target), COMPATIBILITY["target"]["pristine_sha256"])
-                self.assertFalse(self.backup.exists())
+        for version in ("0.21.0", "0.21.1", "0.21.2"):
+            self.write_version(version)
+            for command in ("status", "install", "rollback"):
+                with self.subTest(version=version, command=command):
+                    self.run_guard(command, succeeds=False)
+                    self.assertEqual(sha256_file(self.target), COMPATIBILITY["target"]["pristine_sha256"])
+                    self.assertFalse(self.backup.exists())
 
     def test_corrupt_backup_blocks_install_and_rollback(self) -> None:
         self.run_guard("install")

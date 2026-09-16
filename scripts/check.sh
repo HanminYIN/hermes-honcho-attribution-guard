@@ -31,7 +31,7 @@ required_files=(
   AGENTS.md
   assets/readme-hero.svg
   compatibility.json
-  patches/hermes-2026.9.7.patch
+  patches/hermes-2026.9.14.patch
   honcho-guard
   scripts/build-release.sh
   scripts/check.sh
