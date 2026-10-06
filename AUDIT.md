@@ -1,18 +1,21 @@
 # Evidence and audit boundary
 
-Audit date: 2026-09-17 (Asia/Singapore).
+Audit date: 2026-10-07 (Asia/Singapore).
 
 ## Currently verified
 
-- The official GitHub release is `v2026.9.14`, named "Hermes Agent v0.21.3
-  (v2026.9.14)". Its annotated tag peels to commit
-  `345cd2b057a452236de401d3534b8502a7465e8d`.
-- The tagged `pyproject.toml` reports package version `0.21.3` and pins
+- The official GitHub release is `v2026.9.24`, named "Hermes Agent v0.21.5
+  (v2026.9.24)". Its annotated tag peels to commit
+  `f97608f178d1ffeca59860195ab7da295f7c8e5f`.
+- The tagged `pyproject.toml` reports package version `0.21.5` and pins
   `honcho-ai==2.2.0`.
 - The tagged target file, MIT license, and `pyproject.toml` match the SHA256
   values recorded in `compatibility.json`.
 - Honcho SDK `2.2.0` accepts message-level `metadata` and
   `configuration.reasoning.custom_instructions` in `Peer.message()`.
+- The target and four supporting modules are byte-identical to the prior
+  supported Hermes `v2026.9.14` source. Patch behavior and the patched target
+  SHA256 remain unchanged.
 - The patch is regenerated from the pristine tagged target and changes only
   `plugins/memory/honcho/session.py`.
 - Group writes carry upstream `author_peer_id` into attribution metadata and
@@ -29,7 +32,7 @@ Audit date: 2026-09-17 (Asia/Singapore).
 - All 30 tests pass, including group-author retries without duplicate writes,
   summary reasoning-text cleanup followed by memory filtering, repeated
   install/rollback, reinstall from a retained backup, corrupt-backup rejection,
-  and rejection of `0.21.0`, `0.21.1`, and `0.21.2` even when paired with the
+  and rejection of `0.21.0` through `0.21.4` plus `0.21.6` even when paired with the
   supported target bytes. The test harness stubs Hermes log redaction; it does
   not verify that unrelated redaction implementation.
 - The installer uses POSIX `patch` when available and a checked `git apply`
@@ -39,7 +42,7 @@ Audit date: 2026-09-17 (Asia/Singapore).
   permissions and are revalidated at runtime before entering message metadata.
   Alias values are then transmitted to the configured Honcho backend as part of
   that metadata; the setup wizard requires explicit opt-in after disclosure.
-- Alias profiles in `v0.5.0` are single-user only. The wizard refuses to create
+- Alias profiles in `v0.6.0` are single-user only. The wizard refuses to create
   one unless the operator confirms the Hermes instance has one human user.
 - `scripts/check.sh` independently downloads the public upstream files or reads
   an explicitly supplied immutable-tag checkout, then rechecks target, license,

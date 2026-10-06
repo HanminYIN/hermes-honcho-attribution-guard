@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v0.5.0</code>　<code>Hermes v2026.9.14</code>　<code>MIT</code>
+  <code>v0.6.0</code>　<code>Hermes v2026.9.24</code>　<code>MIT</code>
 </p>
 
 `hermes-honcho-attribution-guard` is a small, verifiable, and reversible patch
@@ -31,7 +31,7 @@ It is not a new memory provider and not a Hermes fork. The patch changes only
 Hermes configuration, or restart any service.
 
 > [!IMPORTANT]
-> This release supports only Hermes `v2026.9.14` (Python package `0.21.3`). The
+> This release supports only Hermes `v2026.9.24` (Python package `0.21.5`). The
 > installer verifies the version, target-file SHA256, and patch SHA256. If any
 > value differs, it exits safely without changing the target.
 
@@ -69,15 +69,15 @@ user's aliases. Alias profiles remain supported only for single-user instances.
 
 Download both assets from [GitHub Releases](../../releases):
 
-- `hermes-honcho-attribution-guard-v0.5.0.tar.gz`
+- `hermes-honcho-attribution-guard-v0.6.0.tar.gz`
 - `SHA256SUMS`
 
 macOS:
 
 ```bash
 shasum -a 256 -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.5.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.5.0
+tar -xzf hermes-honcho-attribution-guard-v0.6.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.6.0
 shasum -a 256 -c MANIFEST.sha256
 ```
 
@@ -85,8 +85,8 @@ Linux:
 
 ```bash
 sha256sum -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.5.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.5.0
+tar -xzf hermes-honcho-attribution-guard-v0.6.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.6.0
 sha256sum -c MANIFEST.sha256
 ```
 
@@ -137,7 +137,7 @@ The wizard confirms, in order:
 ```
 
 > [!WARNING]
-> The `v0.5.0` alias profile is for single-user Hermes instances only. Skip this
+> The `v0.6.0` alias profile is for single-user Hermes instances only. Skip this
 > feature on a multi-user gateway. Core attribution remains available without it.
 
 The profile is stored at
@@ -167,9 +167,9 @@ Compatibility is an exact version-and-hash contract, not a fuzzy range:
 
 | Item | Required value |
 | --- | --- |
-| Hermes release | `v2026.9.14` |
-| `hermes-agent` Python package | `0.21.3` |
-| Upstream commit | `345cd2b057a452236de401d3534b8502a7465e8d` |
+| Hermes release | `v2026.9.24` |
+| `hermes-agent` Python package | `0.21.5` |
+| Upstream commit | `f97608f178d1ffeca59860195ab7da295f7c8e5f` |
 | Honcho SDK | `honcho-ai==2.2.0` |
 | Target | `plugins/memory/honcho/session.py` |
 | Pristine SHA256 | `d6cf68ef8d04fd67a8f60d1ef1dfa1accad4d15103d6ec0eb7490688667b22ee` |
@@ -190,7 +190,7 @@ checking only the base venv can falsely report that the SDK is missing.
 Before installation, the exact pristine target is retained at:
 
 ```text
-HERMES_ROOT/.hermes-honcho-attribution-guard/backups/v2026.9.14/plugins/memory/honcho/session.py
+HERMES_ROOT/.hermes-honcho-attribution-guard/backups/v2026.9.24/plugins/memory/honcho/session.py
 ```
 
 To restore it:
@@ -249,7 +249,7 @@ inner `MANIFEST.sha256`. Identical source files produce an identical archive has
 ## Upstream and license
 
 This patch targets [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)
-release [`v2026.9.14`](https://github.com/NousResearch/hermes-agent/releases/tag/v2026.9.14).
+release [`v2026.9.24`](https://github.com/NousResearch/hermes-agent/releases/tag/v2026.9.24).
 Hermes Agent is distributed under the MIT License. The upstream license and
 copyright notice are preserved verbatim in [LICENSE](./LICENSE).
 
