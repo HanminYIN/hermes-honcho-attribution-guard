@@ -558,8 +558,8 @@ class InstallerSafetyTests(unittest.TestCase):
             "schema_version": 1,
             "package": {"name": "test-package", "version": "test-version"},
             "upstream": {
-                "release_tag": "v2026.9.14",
-                "python_package": {"version": "0.21.3"},
+                "release_tag": "v2026.9.24",
+                "python_package": {"version": "0.21.5"},
             },
             "target": {
                 "path": self.target_rel.as_posix(),
@@ -575,7 +575,7 @@ class InstallerSafetyTests(unittest.TestCase):
         (self.package / "compatibility.json").write_text(
             json.dumps(self.compatibility), encoding="utf-8"
         )
-        self.write_hermes(version="0.21.3", content=self.pristine)
+        self.write_hermes(version="0.21.5", content=self.pristine)
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()
@@ -614,7 +614,7 @@ class InstallerSafetyTests(unittest.TestCase):
         )
 
     def test_incompatible_hash_is_rejected_without_backup(self) -> None:
-        self.write_hermes(version="0.21.3", content=b"local modification\n")
+        self.write_hermes(version="0.21.5", content=b"local modification\n")
         result = self.run_script("install.sh")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(
@@ -625,7 +625,7 @@ class InstallerSafetyTests(unittest.TestCase):
         )
 
     def test_patched_target_without_verified_backup_is_rejected(self) -> None:
-        self.write_hermes(version="0.21.3", content=self.patched)
+        self.write_hermes(version="0.21.5", content=self.patched)
         result = self.run_script("install.sh")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual((self.hermes / self.target_rel).read_bytes(), self.patched)
@@ -651,7 +651,7 @@ class InstallerSafetyTests(unittest.TestCase):
 
         backup = (
             self.hermes
-            / ".hermes-honcho-attribution-guard/backups/v2026.9.14"
+            / ".hermes-honcho-attribution-guard/backups/v2026.9.24"
             / self.target_rel
         )
         self.assertEqual(backup.read_bytes(), self.pristine)
@@ -737,9 +737,9 @@ class UpstreamInstallerTests(unittest.TestCase):
             self.assertEqual(sha256_file(self.target), COMPATIBILITY["target"]["pristine_sha256"])
             self.assertIn("already rolled back", self.run_guard("rollback").stdout)
 
-    def test_previous_release_rejected_even_with_supported_target(self) -> None:
+    def test_unsupported_versions_rejected_even_with_supported_target(self) -> None:
         # A matching target must not bypass the exact package-version gate.
-        for version in ("0.21.0", "0.21.1", "0.21.2"):
+        for version in ("0.21.0", "0.21.1", "0.21.2", "0.21.3", "0.21.4", "0.21.6"):
             self.write_version(version)
             for command in ("status", "install", "rollback"):
                 with self.subTest(version=version, command=command):

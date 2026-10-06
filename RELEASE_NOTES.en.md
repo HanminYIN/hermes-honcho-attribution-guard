@@ -1,4 +1,4 @@
-# hermes-honcho-attribution-guard v0.5.0
+# hermes-honcho-attribution-guard v0.6.0
 
 <p align="right">
   <a href="./RELEASE_NOTES.md">简体中文</a> · <strong>English</strong>
@@ -6,26 +6,23 @@
 
 > Safer identity attribution for Hermes Agent's built-in Honcho memory provider.
 
-## Changes in v0.5.0
+## Changes in v0.6.0
 
-- Rebuilt the patch from the pristine official Hermes `v2026.9.14` /
-  `hermes-agent 0.21.3` tag.
-- Adapted to group-message writes: `author_peer_id` selects both the actual SDK
-  peer and attribution metadata. Other group members do not inherit the default
-  user's aliases; first-person mappings follow the actual author.
-- Preserved upstream write locking, retries, message-cache trimming, and summary
-  reasoning-text cleanup. The patch still changes only `session.py`.
-- Pinned four supporting upstream modules by SHA256. Status, install, and rollback
-  reject missing, modified, or symlinked supporting files.
-- All 30 tests cover group attribution, failed-write retries, duplicate-flush
-  prevention, summary cleanup, existing retrieval behavior, install/rollback
-  idempotency, and rejection of packages `0.21.0`, `0.21.1`, and `0.21.2`.
-- Preserved the `honcho-ai==2.2.0` message-level metadata and reasoning
+- Support the exact official Hermes `v2026.9.24` / `hermes-agent 0.21.5`
+  release; update the upstream commit, version metadata hash, pinned CI source,
+  and release allowlist.
+- Regenerate the patch from the pristine tagged source. `session.py` and all four
+  supporting modules are byte-identical to the previous supported release, so
+  patch behavior and the patched target hash remain unchanged.
+- Preserve group-author attribution, pronoun ownership, assistant-guess rules,
+  transient-state filtering, and normalized exact-duplicate filtering.
+- Preserve the `honcho-ai==2.2.0` message-level metadata and reasoning
   configuration contract.
-- Retained the checked `git apply` fallback when POSIX `patch` is unavailable; the
-  staged output must still match the exact recorded patched SHA256.
-- Retained version rejection, unknown-change rejection, backup validation,
-  idempotent install/rollback, and privacy-scan gates.
+- All 30 tests cover attribution behavior, idempotent install/rollback, backup
+  validation, and supporting-file protection. Expanded version rejection covers
+  `0.21.0`–`0.21.4` and unsupported `0.21.6`, even with matching target bytes.
+- Synchronize Chinese and English documentation. Source and local behavior
+  verification do not establish end-to-end remote Honcho memory correctness.
 
 ## Overview
 
@@ -63,15 +60,15 @@ memory provider and not a Hermes fork. It patches only
 
 This release provides two downloadable assets:
 
-- `hermes-honcho-attribution-guard-v0.5.0.tar.gz` — the complete patch package;
+- `hermes-honcho-attribution-guard-v0.6.0.tar.gz` — the complete patch package;
 - `SHA256SUMS` — the archive checksum.
 
 Verify the download, extract it, and verify the inner file manifest:
 
 ```bash
 shasum -a 256 -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.5.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.5.0
+tar -xzf hermes-honcho-attribution-guard-v0.6.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.6.0
 shasum -a 256 -c MANIFEST.sha256
 ```
 
@@ -102,16 +99,16 @@ is kept inside the Hermes checkout with file mode `0600`. Alias values are sent
 as structured message metadata to the user's configured Honcho backend; the
 wizard discloses this and asks for explicit consent before collection.
 
-The `v0.5.0` alias profile is intended only for a single-user Hermes instance.
+The `v0.6.0` alias profile is intended only for a single-user Hermes instance.
 Multi-user gateways should skip it and continue using core attribution without
 aliases.
 
 ## Compatibility
 
-- Hermes release: `v2026.9.14`
-- `hermes-agent`: `0.21.3`
+- Hermes release: `v2026.9.24`
+- `hermes-agent`: `0.21.5`
 - Honcho SDK: `honcho-ai==2.2.0`
-- Guard package: `0.5.0`
+- Guard package: `0.6.0`
 
 Compatibility is enforced with exact versions and SHA256 values. The patch is
 never fuzzily applied to a similar release.

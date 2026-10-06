@@ -1,4 +1,4 @@
-# hermes-honcho-attribution-guard v0.5.0
+# hermes-honcho-attribution-guard v0.6.0
 
 <p align="right">
   <strong>简体中文</strong> · <a href="./RELEASE_NOTES.en.md">English</a>
@@ -6,19 +6,17 @@
 
 > Safer identity attribution for Hermes Agent's built-in Honcho memory provider.
 
-## v0.5.0 更新
+## v0.6.0 更新
 
-- 重新基于官方 Hermes `v2026.9.14` / `hermes-agent 0.21.3` 的干净标签源码生成补丁；
-- 适配新版群聊写入路径：用户消息的 `author_peer_id` 同时用于实际 SDK peer 和归属
-  metadata；其他群成员不继承默认用户的称呼，第一人称映射跟随实际作者；
-- 保留上游写入锁、重试、消息缓存裁剪和摘要推理文本清理；补丁仍只修改 `session.py`；
-- 固定并核验四个上游辅助模块的 SHA256；状态、安装和回滚均拒绝缺失、修改或符号链接；
-- 30 项测试覆盖群聊归属、失败重试、重复刷新不重复写入、摘要清理与既有检索行为，
-  以及安装/回滚幂等和旧版 `0.21.0`、`0.21.1`、`0.21.2` 拒绝；
+- 精确支持官方 Hermes `v2026.9.24` / `hermes-agent 0.21.5`，更新上游 commit、
+  版本元数据哈希、CI 固定源码和发布包清单；
+- 从该标签的干净源码重新生成补丁。`session.py` 及四个辅助模块与上一支持版本逐字节
+  相同，因此补丁逻辑和补丁后文件哈希保持不变；
+- 保留群聊实际作者归属、人称映射、助手猜测约束、短期状态和完全重复内容过滤；
 - 保持 `honcho-ai==2.2.0` 的消息级 metadata 与推理配置契约；
-- 安装器继续在没有 POSIX `patch` 时使用经过 `--check` 的 `git apply` 回退，最终产物仍需
-  精确匹配记录的补丁后 SHA256；
-- 保留版本拒绝、未知修改拒绝、备份校验、安装/回滚幂等和隐私扫描门禁。
+- 30 项测试覆盖归属行为、安装/回滚幂等、备份和辅助文件保护；扩展版本拒绝检查，
+  即使目标字节相同，也拒绝 `0.21.0`–`0.21.4` 和未支持的 `0.21.6`；
+- 同步中英文文档。此发布验证源码与本地行为，不代表远端 Honcho 记忆端到端验收。
 
 ## 简介
 
@@ -49,15 +47,15 @@ peer ID、消息作者与第一/第二人称映射始终具有更高优先级。
 
 本 Release 提供两个下载文件：
 
-- `hermes-honcho-attribution-guard-v0.5.0.tar.gz`：完整补丁工具包；
+- `hermes-honcho-attribution-guard-v0.6.0.tar.gz`：完整补丁工具包；
 - `SHA256SUMS`：压缩包校验和。
 
 下载后先校验并解压；压缩包内的 `MANIFEST.sha256` 可以继续核验每一个文件：
 
 ```bash
 shasum -a 256 -c SHA256SUMS
-tar -xzf hermes-honcho-attribution-guard-v0.5.0.tar.gz
-cd hermes-honcho-attribution-guard-v0.5.0
+tar -xzf hermes-honcho-attribution-guard-v0.6.0.tar.gz
+cd hermes-honcho-attribution-guard-v0.6.0
 shasum -a 256 -c MANIFEST.sha256
 ```
 
@@ -86,15 +84,15 @@ Linux 用户可以使用 `sha256sum -c`。校验通过后，普通用户只需�
 映射，称呼值会作为结构化消息 metadata 发送到用户已配置的 Honcho 后端；向导会在
 采集前明确告知并再次取得同意。
 
-`v0.5.0` 的可选称呼档案仅面向单用户 Hermes 实例；多用户网关应跳过称呼配置，
+`v0.6.0` 的可选称呼档案仅面向单用户 Hermes 实例；多用户网关应跳过称呼配置，
 继续使用不依赖别名的核心 attribution 功能。
 
 ## 兼容范围
 
-- Hermes release：`v2026.9.14`
-- `hermes-agent`：`0.21.3`
+- Hermes release：`v2026.9.24`
+- `hermes-agent`：`0.21.5`
 - Honcho SDK：`honcho-ai==2.2.0`
-- 补丁包版本：`0.5.0`
+- 补丁包版本：`0.6.0`
 
 兼容范围采用精确版本与 SHA256 校验，不会对相似版本模糊应用补丁。
 
